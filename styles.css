@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&display=swap");
+
+* {
+  box-sizing: border-box;
+  font-family: "DynaPuff", system-ui;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #dff6ff 0%, #ffd9ec 100%);
+}
+
+button {
+  padding: 13px 28px;
+  border: 0;
+  border-radius: 10px;
+  background: #f567bd;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+button:hover { background: #a9ddf5; transform: translateY(-2px); }
+.container { width: min(850px, 100%); padding: 45px 30px; text-align: center; background: rgba(255, 255, 255, 0.92); border-radius: 24px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12); }
+.logo { display: block; width: min(630px, 100%); height: auto; margin: 0 auto 25px; }
+.creators { margin: 0 0 25px; color: #555; font-size: 20px; }
+.tutorial-button { position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; padding: 0; border-radius: 50%; font-size: 24px; font-weight: bold; z-index: 900; }
+.account-buttons { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.welcome-box { display: none; margin-top: 20px; }
+.welcome-name { color: #f567bd; font-size: 24px; font-weight: bold; }
+.signout-button { margin-top: 15px; background: #777; }
+.signout-button:hover { background: #a9ddf5; }
+.overlay { position: fixed; inset: 0; padding: 20px; display: none; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.45); z-index: 1000; overflow-y: auto; }
+.overlay.active { display: flex; }
+.tutorial-box, .account-box { position: relative; width: min(500px, 100%); padding: 30px; background: white; border-radius: 22px; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25); }
+.tutorial-content { min-height: 130px; display: grid; place-items: center; text-align: center; font-size: 22px; }
+.close-button { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; padding: 0; }
+.tutorial-controls { display: flex; justify-content: space-between; margin-top: 25px; }
+.tutorial-controls button { width: 60px; height: 45px; padding: 0; }
+.tutorial-dots { display: flex; justify-content: center; gap: 8px; }
+.dot { width: 12px; height: 12px; background: #ddd; border-radius: 50%; }
+.dot.active { background: #f567bd; }
+.account-box { width: 430px; padding: 40px 30px 30px; text-align: center; }
+.account-box h2 { margin: 0 0 25px; color: #f567bd; }
+.account-box input { width: 100%; padding: 14px; margin: 8px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; outline: none; }
+.account-box input:focus { border-color: #f567bd; }
+.account-main-button { width: 100%; margin-top: 15px; }
+.switch-account { margin-top: 20px; color: #666; }
+.link-button { display: inline-block; padding: 0; background: transparent; color: #f567bd; font-size: 16px; font-weight: bold; text-decoration: underline; }
+.link-button:hover { background: transparent; color: #a9ddf5; transform: none; }
+.account-message { min-height: 22px; margin-top: 15px; font-size: 15px; }
+.error { color: #c73535; }
+.success { color: #2c8c4b; }
+.requirements { margin: 8px 0 15px; text-align: left; color: #777; font-size: 13px; line-height: 1.5; }
+
+@media (max-width: 520px) {
+  body { padding: 80px 14px 24px; }
+  .container { padding: 30px 18px; }
+  .creators { font-size: 16px; }
+}

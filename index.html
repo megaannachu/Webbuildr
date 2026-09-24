@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Buildr</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <button class="tutorial-button" onclick="startTutorial()" title="Open tutorial">?</button>
+
+  <main class="container">
+    <img class="logo" src="https://file.garden/aKtEcZD-hThC8Gxk/webbuildr%20lowercase.png" alt="Web Buildr logo">
+    <p class="creators">Made by Sade Stephens and Anna Grubbs</p>
+
+    <div class="account-buttons" id="loggedOutButtons">
+      <button onclick="openSignIn()">Sign In</button>
+      <button onclick="openCreateAccount()">Create Account</button>
+    </div>
+
+    <div class="welcome-box" id="welcomeBox">
+      <div class="welcome-name" id="welcomeName"></div>
+      <button class="signout-button" onclick="signOut()">Sign Out</button>
+    </div>
+  </main>
+
+  <div class="overlay" id="tutorialOverlay">
+    <section class="tutorial-box" aria-label="Tutorial">
+      <button class="close-button" onclick="closeTutorial()" aria-label="Close tutorial">X</button>
+      <div class="tutorial-content" id="tutorialContent"></div>
+      <div class="tutorial-dots" aria-hidden="true">
+        <span class="dot"></span><span class="dot"></span>
+        <span class="dot"></span><span class="dot"></span>
+      </div>
+      <div class="tutorial-controls">
+        <button onclick="previousStep()" aria-label="Previous step">&lt;</button>
+        <button onclick="nextStep()" aria-label="Next step">&gt;</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="overlay" id="signinOverlay">
+    <section class="account-box" aria-label="Sign in">
+      <button class="close-button" onclick="closeSignIn()" aria-label="Close sign in">X</button>
+      <h2>Sign In</h2>
+      <input type="text" id="signinName" placeholder="Username or Email">
+      <input type="password" id="signinPassword" placeholder="Password">
+      <button class="account-main-button" onclick="signIn()">Sign In</button>
+      <p class="account-message" id="signinMessage"></p>
+      <p class="switch-account">
+        <a class="link-button" href="#create-account" onclick="switchToCreateAccount(); return false;">Don't have an account?</a>
+      </p>
+    </section>
+  </div>
+
+  <div class="overlay" id="createAccountOverlay">
+    <section class="account-box" aria-label="Create account">
+      <button class="close-button" onclick="closeCreateAccount()" aria-label="Close create account">X</button>
+      <h2>Create Account</h2>
+      <input type="text" id="createUsername" placeholder="Username">
+      <p class="requirements">Username must be 3-20 characters.<br>Letters, numbers, and underscores only.</p>
+      <input type="email" id="createEmail" placeholder="Email">
+      <input type="password" id="createPassword" placeholder="Password">
+      <input type="password" id="confirmPassword" placeholder="Confirm Password">
+      <p class="requirements">Password must be at least 8 characters.</p>
+      <button class="account-main-button" onclick="createAccount()">Create Account</button>
+      <p class="account-message" id="createMessage"></p>
+      <p class="switch-account">
+        <a class="link-button" href="#sign-in" onclick="switchToSignIn(); return false;">Already have an account?</a>
+      </p>
+    </section>
+  </div>
+
+  <script>
+    let tutorialStep = 0;
+    const tutorialSteps = [
+      "Welcome to Web Buildr!",
+      "Create an account to get started.",
+      "Sign in to access your account.",
+      "You are ready to build!"
+    ];
+
+    function show(id) { document.getElementById(id).classList.add("active"); }
+    function hide(id) { document.getElementById(id).classList.remove("active"); }
+    function startTutorial() { tutorialStep = 0; show("tutorialOverlay"); updateTutorial(); }
+    function closeTutorial() { hide("tutorialOverlay"); }
+    function nextStep() {
+      if (tutorialStep < tutorialSteps.length - 1) { tutorialStep++; updateTutorial(); }
+      else { closeTutorial(); }
+    }
+    function previousStep() {
+      if (tutorialStep > 0) { tutorialStep--; updateTutorial(); }
+    }
+    function updateTutorial() {
+      document.getElementById("tutorialContent").textContent = tutorialSteps[tutorialStep];
+      document.querySelectorAll(".dot").forEach((dot, index) => {
+        dot.classList.toggle("active", index === tutorialStep);
+      });
+    }
+
+    function openSignIn() { show("signinOverlay"); clearMessage("signinMessage"); }
+    function closeSignIn() { hide("signinOverlay"); }
+    function openCreateAccount() { show("createAccountOverlay"); clearMessage("createMessage"); }
+    function closeCreateAccount() { hide("createAccountOverlay"); }
+    function switchToCreateAccount() { closeSignIn(); openCreateAccount(); }
+    function switchToSignIn() { closeCreateAccount(); openSignIn(); }
+    function getAccounts() { return JSON.parse(localStorage.getItem("webBuildrAccounts") || "[]"); }
+    function saveAccounts(accounts) { localStorage.setItem("webBuildrAccounts", JSON.stringify(accounts)); }
+    function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+    function isValidUsername(username) { return /^[A-Za-z0-9_]{3,20}$/.test(username); }
+    function setMessage(id, text, type) {
+      const message = document.getElementById(id);
+      message.textContent = text;
+      message.className = "account-message " + type;
+    }
+    function clearMessage(id) { setMessage(id, "", ""); }
+
+    function createAccount() {
+      const username = document.getElementById("createUsername").value.trim();
+      const email = document.getElementById("createEmail").value.trim();
+      const password = document.getElementById("createPassword").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      const error = (text) => setMessage("createMessage", text, "error");
+
+      if (!username || !email || !password || !confirmPassword) return error("Please fill in every box.");
+      if (!isValidUsername(username)) return error("That username is not valid.");
+      if (!isValidEmail(email)) return error("Please enter a valid email address.");
+      if (password.length < 8) return error("Password must be at least 8 characters.");
+      if (password !== confirmPassword) return error("The passwords do not match.");
+
+      const accounts = getAccounts();
+      if (accounts.some(account => account.username.toLowerCase() === username.toLowerCase())) return error("That username is already taken.");
+      if (accounts.some(account => account.email.toLowerCase() === email.toLowerCase())) return error("An account already uses that email.");
+      accounts.push({ username, email, password });
+      saveAccounts(accounts);
+      setMessage("createMessage", "Account created successfully!", "success");
+      ["createUsername", "createEmail", "createPassword", "confirmPassword"].forEach(id => document.getElementById(id).value = "");
+    }
+
+    function signIn() {
+      const nameOrEmail = document.getElementById("signinName").value.trim();
+      const password = document.getElementById("signinPassword").value;
+      const error = (text) => setMessage("signinMessage", text, "error");
+      if (!nameOrEmail || !password) return error("Please fill in both boxes.");
+      const account = getAccounts().find(savedAccount =>
+        savedAccount.username.toLowerCase() === nameOrEmail.toLowerCase() ||
+        savedAccount.email.toLowerCase() === nameOrEmail.toLowerCase());
+      if (!account) return error("Account not found.");
+      if (account.password !== password) return error("Incorrect password.");
+      localStorage.setItem("webBuildrSignedInUser", account.username);
+      closeSignIn();
+      document.getElementById("signinName").value = "";
+      document.getElementById("signinPassword").value = "";
+      updateSignedInDisplay();
+    }
+
+    function signOut() {
+      localStorage.removeItem("webBuildrSignedInUser");
+      updateSignedInDisplay();
+    }
+    function updateSignedInDisplay() {
+      const signedInUser = localStorage.getItem("webBuildrSignedInUser");
+      document.getElementById("loggedOutButtons").style.display = signedInUser ? "none" : "flex";
+      document.getElementById("welcomeBox").style.display = signedInUser ? "block" : "none";
+      if (signedInUser) document.getElementById("welcomeName").textContent = "Welcome, " + signedInUser + "!";
+    }
+    updateSignedInDisplay();
+  </script>
+</body>
+</html>
