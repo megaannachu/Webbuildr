@@ -5,46 +5,49 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Web Buildr</title>
+  <link rel="icon" type="image/png" href="https://file.garden/aKtEcZD-hThC8Gxk/WebBuildrIcon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <button class="tutorial-button" onclick="startTutorial()" title="Open tutorial">?</button>
-
-  <main class="container">
+  <!-- Main page content: logo, creators, and account actions -->
+  <main class="container" id="landingPage">
     <img class="logo" src="https://file.garden/aKtEcZD-hThC8Gxk/webbuildr%20lowercase.png" alt="Web Buildr logo">
     <p class="creators">Made by Sade Stephens and Anna Grubbs</p>
 
+    <!-- Logged out account buttons: Sign In and Create Account -->
     <div class="account-buttons" id="loggedOutButtons">
       <button onclick="openSignIn()">Sign In</button>
       <button onclick="openCreateAccount()">Create Account</button>
     </div>
 
+    <!-- Logged in welcome area: shows user name and Sign Out button -->
     <div class="welcome-box" id="welcomeBox">
       <div class="welcome-name" id="welcomeName"></div>
       <button class="signout-button" onclick="signOut()">Sign Out</button>
     </div>
   </main>
 
-  <div class="overlay" id="tutorialOverlay">
-    <section class="tutorial-box" aria-label="Tutorial">
-      <button class="close-button" onclick="closeTutorial()" aria-label="Close tutorial">X</button>
-      <div class="tutorial-content" id="tutorialContent"></div>
-      <div class="tutorial-dots" aria-hidden="true">
-        <span class="dot"></span><span class="dot"></span>
-        <span class="dot"></span><span class="dot"></span>
+  <main class="dashboard" id="dashboardPage" hidden>
+    <header class="dashboard-header">
+      <div>
+        <p class="dashboard-eyebrow">WEB BUILDR</p>
+        <h1>Dashboard</h1>
+        <p class="dashboard-welcome" id="dashboardWelcome"></p>
       </div>
-      <div class="tutorial-controls">
-        <button onclick="previousStep()" aria-label="Previous step">&lt;</button>
-        <button onclick="nextStep()" aria-label="Next step">&gt;</button>
-      </div>
+      <button class="signout-button" onclick="signOut()">Sign Out</button>
+    </header>
+    <section class="dashboard-content" aria-label="Dashboard content">
+      <h2>Your workspace</h2>
+      <p>Your projects will appear here.</p>
     </section>
-  </div>
+  </main>
 
+  <!-- Sign in -->
   <div class="overlay" id="signinOverlay">
     <section class="account-box" aria-label="Sign in">
       <button class="close-button" onclick="closeSignIn()" aria-label="Close sign in">X</button>
       <h2>Sign In</h2>
-      <input type="text" id="signinName" placeholder="Username or Email">
+      <input type="email" id="signinName" placeholder="Email">
       <input type="password" id="signinPassword" placeholder="Password">
       <button class="account-main-button" onclick="signIn()">Sign In</button>
       <p class="account-message" id="signinMessage"></p>
@@ -54,6 +57,7 @@
     </section>
   </div>
 
+  <!-- Create account -->
   <div class="overlay" id="createAccountOverlay">
     <section class="account-box" aria-label="Create account">
       <button class="close-button" onclick="closeCreateAccount()" aria-label="Close create account">X</button>
@@ -73,42 +77,26 @@
   </div>
 
   <script>
-    let tutorialStep = 0;
-    const tutorialSteps = [
-      "Welcome to Web Buildr!",
-      "Create an account to get started.",
-      "Sign in to access your account.",
-      "You are ready to build!"
-    ];
+    const USERS_STORAGE_KEY = "webbuildrUsers";
+    const SESSION_STORAGE_KEY = "webbuildrSession";
 
+    // Shared model helpers.
     function show(id) { document.getElementById(id).classList.add("active"); }
     function hide(id) { document.getElementById(id).classList.remove("active"); }
-    function startTutorial() { tutorialStep = 0; show("tutorialOverlay"); updateTutorial(); }
-    function closeTutorial() { hide("tutorialOverlay"); }
-    function nextStep() {
-      if (tutorialStep < tutorialSteps.length - 1) { tutorialStep++; updateTutorial(); }
-      else { closeTutorial(); }
-    }
-    function previousStep() {
-      if (tutorialStep > 0) { tutorialStep--; updateTutorial(); }
-    }
-    function updateTutorial() {
-      document.getElementById("tutorialContent").textContent = tutorialSteps[tutorialStep];
-      document.querySelectorAll(".dot").forEach((dot, index) => {
-        dot.classList.toggle("active", index === tutorialStep);
-      });
-    }
 
+    // Account model controls: Sign In and Create Account popups.
     function openSignIn() { show("signinOverlay"); clearMessage("signinMessage"); }
     function closeSignIn() { hide("signinOverlay"); }
     function openCreateAccount() { show("createAccountOverlay"); clearMessage("createMessage"); }
     function closeCreateAccount() { hide("createAccountOverlay"); }
     function switchToCreateAccount() { closeSignIn(); openCreateAccount(); }
     function switchToSignIn() { closeCreateAccount(); openSignIn(); }
-    function getAccounts() { return JSON.parse(localStorage.getItem("webBuildrAccounts") || "[]"); }
-    function saveAccounts(accounts) { localStorage.setItem("webBuildrAccounts", JSON.stringify(accounts)); }
+
+    // Input validation helpers.
     function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
     function isValidUsername(username) { return /^[A-Za-z0-9_]{3,20}$/.test(username); }
+
+    // Account form messages.
     function setMessage(id, text, type) {
       const message = document.getElementById(id);
       message.textContent = text;
@@ -116,7 +104,40 @@
     }
     function clearMessage(id) { setMessage(id, "", ""); }
 
-    function createAccount() {
+    function getLocalUsers() {
+      try {
+        const users = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || "[]");
+        return Array.isArray(users) ? users : [];
+      } catch {
+        return [];
+      }
+    }
+
+    async function createPasswordVerifier(password, salt) {
+      if (!window.crypto?.subtle) throw new Error("Secure local sign-in requires a modern browser.");
+      const passwordKey = await window.crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(password),
+        "PBKDF2",
+        false,
+        ["deriveBits"]
+      );
+      const saltBytes = salt || window.crypto.getRandomValues(new Uint8Array(16));
+      const verifier = await window.crypto.subtle.deriveBits(
+        { name: "PBKDF2", salt: saltBytes, iterations: 100000, hash: "SHA-256" },
+        passwordKey,
+        256
+      );
+      const toHex = (bytes) => Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+      return { salt: toHex(saltBytes), verifier: toHex(new Uint8Array(verifier)) };
+    }
+
+    function hexToBytes(hex) {
+      return new Uint8Array(hex.match(/.{2}/g).map(byte => parseInt(byte, 16)));
+    }
+
+    // Create a browser-local account and sign in immediately.
+    async function createAccount() {
       const username = document.getElementById("createUsername").value.trim();
       const email = document.getElementById("createEmail").value.trim();
       const password = document.getElementById("createPassword").value;
@@ -129,41 +150,57 @@
       if (password.length < 8) return error("Password must be at least 8 characters.");
       if (password !== confirmPassword) return error("The passwords do not match.");
 
-      const accounts = getAccounts();
-      if (accounts.some(account => account.username.toLowerCase() === username.toLowerCase())) return error("That username is already taken.");
-      if (accounts.some(account => account.email.toLowerCase() === email.toLowerCase())) return error("An account already uses that email.");
-      accounts.push({ username, email, password });
-      saveAccounts(accounts);
-      setMessage("createMessage", "Account created successfully!", "success");
-      ["createUsername", "createEmail", "createPassword", "confirmPassword"].forEach(id => document.getElementById(id).value = "");
+      const users = getLocalUsers();
+      if (users.some(user => user.email === email.toLowerCase())) return error("An account with that email already exists.");
+      if (users.some(user => user.username.toLowerCase() === username.toLowerCase())) return error("That username is already taken.");
+
+      try {
+        const { salt, verifier } = await createPasswordVerifier(password);
+        users.push({ username, email: email.toLowerCase(), salt, verifier });
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        localStorage.setItem(SESSION_STORAGE_KEY, email.toLowerCase());
+        ["createUsername", "createEmail", "createPassword", "confirmPassword"].forEach(id => document.getElementById(id).value = "");
+        closeCreateAccount();
+        updateSignedInDisplay();
+      } catch (storageError) {
+        error(storageError.message || "Could not save the account in this browser.");
+      }
     }
 
-    function signIn() {
-      const nameOrEmail = document.getElementById("signinName").value.trim();
+    // Sign in by checking the browser-local account list.
+    async function signIn() {
+      const email = document.getElementById("signinName").value.trim();
       const password = document.getElementById("signinPassword").value;
       const error = (text) => setMessage("signinMessage", text, "error");
-      if (!nameOrEmail || !password) return error("Please fill in both boxes.");
-      const account = getAccounts().find(savedAccount =>
-        savedAccount.username.toLowerCase() === nameOrEmail.toLowerCase() ||
-        savedAccount.email.toLowerCase() === nameOrEmail.toLowerCase());
-      if (!account) return error("Account not found.");
-      if (account.password !== password) return error("Incorrect password.");
-      localStorage.setItem("webBuildrSignedInUser", account.username);
-      closeSignIn();
-      document.getElementById("signinName").value = "";
-      document.getElementById("signinPassword").value = "";
-      updateSignedInDisplay();
+      if (!email || !password) return error("Please fill in both boxes.");
+
+      const user = getLocalUsers().find(account => account.email === email.toLowerCase());
+      if (!user) return error("No account was found with that email and password.");
+
+      try {
+        const { verifier } = await createPasswordVerifier(password, hexToBytes(user.salt));
+        if (verifier !== user.verifier) return error("No account was found with that email and password.");
+        localStorage.setItem(SESSION_STORAGE_KEY, user.email);
+        closeSignIn();
+        document.getElementById("signinName").value = "";
+        document.getElementById("signinPassword").value = "";
+        updateSignedInDisplay();
+      } catch (storageError) {
+        error(storageError.message || "Could not sign in with this browser.");
+      }
     }
 
+    // Sign out and show the page for the current local session.
     function signOut() {
-      localStorage.removeItem("webBuildrSignedInUser");
+      localStorage.removeItem(SESSION_STORAGE_KEY);
       updateSignedInDisplay();
     }
     function updateSignedInDisplay() {
-      const signedInUser = localStorage.getItem("webBuildrSignedInUser");
-      document.getElementById("loggedOutButtons").style.display = signedInUser ? "none" : "flex";
-      document.getElementById("welcomeBox").style.display = signedInUser ? "block" : "none";
-      if (signedInUser) document.getElementById("welcomeName").textContent = "Welcome, " + signedInUser + "!";
+      const signedInEmail = localStorage.getItem(SESSION_STORAGE_KEY);
+      const signedInUser = getLocalUsers().find(user => user.email === signedInEmail);
+      document.getElementById("landingPage").hidden = Boolean(signedInUser);
+      document.getElementById("dashboardPage").hidden = !signedInUser;
+      document.getElementById("dashboardWelcome").textContent = signedInUser ? "Welcome, " + signedInUser.email + "!" : "";
     }
     updateSignedInDisplay();
   </script>
