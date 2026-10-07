@@ -27,20 +27,52 @@
     </div>
   </main>
 
-  <main class="dashboard" id="dashboardPage" hidden>
-    <header class="dashboard-header">
+<main class="dashboard" id="dashboardPage" hidden>
+  <aside class="dashboard-sidebar">
+    <a class="sidebar-logo" href="#dashboard" data-view="dashboard" aria-label="Webbuildr dashboard">
+      Web<span>buildr</span>
+    </a>
+    <nav class="sidebar-menu" aria-label="Main navigation">
+      <button class="sidebar-button active" type="button" data-view="dashboard"><span aria-hidden="true">⌂</span> Dashboard</button>
+      <button class="sidebar-button" type="button" data-view="sites"><span aria-hidden="true">▦</span> My Sites</button>
+      <button class="sidebar-button" type="button" data-view="templates"><span aria-hidden="true">▤</span> Templates</button>
+      <button class="sidebar-button" type="button" data-view="resources"><span aria-hidden="true">◇</span> Resources</button>
+      <button class="sidebar-button" type="button" data-view="settings"><span aria-hidden="true">⚙</span> Settings</button>
+    </nav>
+    <div class="sidebar-note">Made for your next big idea.</div>
+  </aside>
+
+  <section class="dashboard-main">
+    <header class="dashboard-topbar">
       <div>
-        <p class="dashboard-eyebrow">WEB BUILDR</p>
-        <h1>Dashboard</h1>
-        <p class="dashboard-welcome" id="dashboardWelcome"></p>
+        <p class="eyebrow">YOUR CREATIVE WORKSPACE</p>
+        <h1 id="dashboardWelcome">Welcome back!</h1>
+        <p class="dashboard-subtitle">What would you like to build today?</p>
       </div>
-      <button class="signout-button" onclick="signOut()">Sign Out</button>
+      <div class="dashboard-user">
+        <span class="profile-circle" id="dashboardAvatar" aria-hidden="true">W</span>
+        <span id="dashboardUsername"></span>
+        <button class="signout-button" type="button" onclick="signOut()">Sign Out</button>
+      </div>
     </header>
-    <section class="dashboard-content" aria-label="Dashboard content">
-      <h2>Your workspace</h2>
-      <p>Your projects will appear here.</p>
-    </section>
-  </main>
+    <div id="dashboardContent" class="dashboard-content" aria-live="polite"></div>
+    <dialog class="site-dialog" id="siteDialog" aria-labelledby="siteDialogTitle">
+      <form id="siteForm">
+        <p class="eyebrow">YOUR NEXT PROJECT</p>
+        <h2 id="siteDialogTitle">Create a site</h2>
+        <label for="siteNameInput">Site name</label>
+        <input id="siteNameInput" name="title" maxlength="60" required autocomplete="off" placeholder="My Website">
+        <input id="siteTemplateInput" name="template" type="hidden" value="blank">
+        <input id="siteIdInput" name="siteId" type="hidden" value="">
+        <p id="siteFormStatus" class="settings-status" role="status"></p>
+        <div class="dialog-actions">
+          <button class="button-secondary" type="button" data-action="close-site-dialog">Cancel</button>
+          <button class="button-primary" type="submit">Save site</button>
+        </div>
+      </form>
+    </dialog>
+  </section>
+</main>
 
   <!-- Sign in -->
   <div class="overlay" id="signinOverlay">
@@ -79,6 +111,11 @@
   <script>
     const USERS_STORAGE_KEY = "webbuildrUsers";
     const SESSION_STORAGE_KEY = "webbuildrSession";
+    const TEMPLATE_OPTIONS = [
+      { id: "blank", name: "Blank Canvas", description: "A clean page for your own ideas.", color: "mint" },
+      { id: "portfolio", name: "Portfolio", description: "Showcase your work and experience.", color: "pink" },
+      { id: "studio", name: "Studio", description: "A polished home for a small business.", color: "yellow" }
+    ];
 
     // Shared model helpers.
     function show(id) { document.getElementById(id).classList.add("active"); }
@@ -135,6 +172,264 @@
     function hexToBytes(hex) {
       return new Uint8Array(hex.match(/.{2}/g).map(byte => parseInt(byte, 16)));
     }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, character => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[character]);
+    }
+
+    function renderAvatar(element, user) {
+      if (!element) return;
+      const imageData = typeof user?.avatarDataUrl === "string" && user.avatarDataUrl.startsWith("data:image/jpeg;base64,")
+        ? user.avatarDataUrl
+        : "";
+      element.replaceChildren();
+      if (imageData) {
+        const image = document.createElement("img");
+        image.className = "avatar-image";
+        image.src = imageData;
+        image.alt = "";
+        element.append(image);
+      } else {
+        element.textContent = user?.username?.trim().charAt(0).toUpperCase() || "?";
+      }
+    }
+
+    function resizeProfileImage(file) {
+      const supportedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+      if (!supportedTypes.includes(file.type)) return Promise.reject(new Error("Choose a JPG, PNG, WebP, GIF, or AVIF image."));
+      if (file.size > 10 * 1024 * 1024) return Promise.reject(new Error("Choose an image smaller than 10 MB."));
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("This image could not be read."));
+        reader.onload = () => {
+          const image = new Image();
+          image.onerror = () => reject(new Error("This image could not be opened."));
+          image.onload = () => {
+            const scale = Math.min(1, 512 / image.naturalWidth, 512 / image.naturalHeight);
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+            const context = canvas.getContext("2d");
+            if (!context) return reject(new Error("Image processing is not supported in this browser."));
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            try {
+              resolve(canvas.toDataURL("image/jpeg", 0.82));
+            } catch {
+              reject(new Error("This image could not be processed."));
+            }
+          };
+          image.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function saveProfileImage(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const status = document.getElementById("avatarStatus");
+      status.textContent = "Preparing photo...";
+      try {
+        const avatarDataUrl = await resizeProfileImage(file);
+        const user = getSignedInUser();
+        if (!user) return;
+        const users = getLocalUsers().map(account => account.email === user.email ? { ...account, avatarDataUrl } : account);
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        updateSignedInDisplay();
+        showDashboardView("settings");
+        document.getElementById("avatarStatus").textContent = "Profile photo saved.";
+      } catch (error) {
+        status.textContent = error.message || "Could not save this photo in your browser.";
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    function removeProfileImage() {
+      const user = getSignedInUser();
+      if (!user) return;
+      const users = getLocalUsers().map(account => account.email === user.email ? { ...account, avatarDataUrl: "" } : account);
+      try {
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        updateSignedInDisplay();
+        showDashboardView("settings");
+        document.getElementById("avatarStatus").textContent = "Profile photo removed.";
+      } catch {
+        document.getElementById("avatarStatus").textContent = "Could not update your profile in this browser.";
+      }
+    }
+
+    function getSignedInUser() {
+      const email = localStorage.getItem(SESSION_STORAGE_KEY);
+      return getLocalUsers().find(user => user.email === email) || null;
+    }
+
+    function getSites() {
+      const user = getSignedInUser();
+      if (!user) return [];
+      try {
+        const sites = JSON.parse(localStorage.getItem("webbuildrSites:" + user.email) || "[]");
+        return Array.isArray(sites) ? sites : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveSites(sites) {
+      const user = getSignedInUser();
+      if (!user) return;
+      localStorage.setItem("webbuildrSites:" + user.email, JSON.stringify(sites));
+    }
+
+    function siteCard(site) {
+      return `
+        <article class="site-card">
+          <div class="site-preview ${escapeHtml(site.template)}" aria-hidden="true">
+            <div class="preview-top"></div>
+            <div class="preview-content"><i></i><i></i><i></i></div>
+          </div>
+          <div class="site-information">
+            <div><h3>${escapeHtml(site.title)}</h3><p>Saved in your workspace</p></div>
+            <div class="site-buttons">
+              <button class="button-secondary" type="button" data-action="edit-site" data-site-id="${escapeHtml(site.id)}">Rename</button>
+              <button class="button-primary" type="button" data-action="preview-site" data-site-id="${escapeHtml(site.id)}">Preview</button>
+            </div>
+          </div>
+        </article>`;
+    }
+
+    function emptySites() {
+      return `<div class="empty-state"><span aria-hidden="true">＋</span><h3>Your first site starts here</h3><p>Create a site or pick a template to get your workspace going.</p><button class="button-primary" type="button" data-view="templates">Browse templates</button></div>`;
+    }
+
+    function templateCards() {
+      return TEMPLATE_OPTIONS.map(template => `
+        <article class="template-card ${template.color}">
+          <div class="template-art" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="template-card-copy"><h3>${template.name}</h3><p>${template.description}</p>
+            <button class="button-primary" type="button" data-action="use-template" data-template="${template.id}">Use template</button>
+          </div>
+        </article>`).join("");
+    }
+
+    function showDashboardView(view = "dashboard") {
+      const content = document.getElementById("dashboardContent");
+      const user = getSignedInUser();
+      if (!user || !content) return;
+      document.querySelectorAll(".sidebar-button").forEach(button => {
+        button.classList.toggle("active", button.dataset.view === view);
+      });
+      const sites = getSites().sort((first, second) => second.updatedAt - first.updatedAt);
+
+      if (view === "sites") {
+        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">YOUR WORK</p><h2>My Sites</h2><p>Everything you have started, in one place.</p></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></div><div class="site-grid">${sites.length ? sites.map(siteCard).join("") : emptySites()}</div>`;
+      } else if (view === "templates") {
+        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">A HEAD START</p><h2>Choose a template</h2><p>Pick a starting point. You can rename it anytime.</p></div></div><div class="template-grid">${templateCards()}</div>`;
+      } else if (view === "resources") {
+        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">LEARN AND BUILD</p><h2>Resources</h2><p>Helpful references for making the web your own.</p></div></div><div class="resource-list"><a href="https://developer.mozilla.org/en-US/docs/Learn/HTML" target="_blank" rel="noreferrer"><span class="resource-mark">01</span><span><strong>HTML basics</strong><small>Structure pages with headings, links, images, and more.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/CSS" target="_blank" rel="noreferrer"><span class="resource-mark">02</span><span><strong>CSS basics</strong><small>Style and arrange the content on your pages.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript" target="_blank" rel="noreferrer"><span class="resource-mark">03</span><span><strong>JavaScript basics</strong><small>Add interaction and behavior to a website.</small></span><span aria-hidden="true">↗</span></a></div>`;
+      } else if (view === "settings") {
+        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">YOUR ACCOUNT</p><h2>Settings</h2><p>Update your name and profile photo.</p></div></div><form class="settings-form" id="settingsForm"><div class="avatar-settings"><div class="profile-circle avatar-preview" id="settingsAvatar" aria-hidden="true"></div><div class="avatar-controls"><label for="avatarFileInput">Profile photo</label><input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif"><small>JPG, PNG, WebP, GIF, or AVIF. Up to 10 MB.</small>${user.avatarDataUrl ? '<button class="button-secondary remove-avatar-button" type="button" data-action="remove-avatar">Remove photo</button>' : ""}<span class="settings-status" id="avatarStatus" role="status"></span></div></div><label for="settingsUsername">Username</label><input id="settingsUsername" name="username" maxlength="20" minlength="3" pattern="[A-Za-z0-9_]{3,20}" required value="${escapeHtml(user.username)}"><p>Use 3-20 letters, numbers, or underscores.</p><button class="button-primary" type="submit">Save changes</button><span class="settings-status" id="settingsStatus" role="status"></span></form>`;
+        renderAvatar(document.getElementById("settingsAvatar"), user);
+      } else {
+        const latestSite = sites[0];
+        content.innerHTML = `
+          <section class="create-banner"><div><p class="eyebrow">A FRESH START</p><h2>Create something new</h2><p>Start building your next website.</p></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></section>
+          <section class="dashboard-section"><div class="section-heading compact"><div><p class="eyebrow">RECENTLY UPDATED</p><h2>Latest site</h2></div><button class="text-button" type="button" data-view="sites">View all <span aria-hidden="true">→</span></button></div>${latestSite ? siteCard(latestSite) : emptySites()}</section>
+          <section class="dashboard-section"><div class="section-heading compact"><div><p class="eyebrow">GET INSPIRED</p><h2>Start with a template</h2></div><button class="text-button" type="button" data-view="templates">Browse all <span aria-hidden="true">→</span></button></div><div class="template-grid home-templates">${templateCards()}</div></section>`;
+      }
+    }
+
+    function openSiteDialog(templateId = "blank", siteId = "") {
+      const template = TEMPLATE_OPTIONS.find(option => option.id === templateId) || TEMPLATE_OPTIONS[0];
+      const site = siteId ? getSites().find(item => item.id === siteId) : null;
+      const dialog = document.getElementById("siteDialog");
+      document.getElementById("siteDialogTitle").textContent = site ? "Rename your site" : "Create a site";
+      document.getElementById("siteNameInput").value = site ? site.title : (template.id === "blank" ? "" : template.name);
+      document.getElementById("siteTemplateInput").value = site ? site.template : template.id;
+      document.getElementById("siteIdInput").value = site ? site.id : "";
+      document.getElementById("siteFormStatus").textContent = "";
+      dialog.showModal();
+      document.getElementById("siteNameInput").focus();
+    }
+
+    function closeSiteDialog() {
+      document.getElementById("siteDialog").close();
+    }
+
+    function editSite(siteId) {
+      openSiteDialog("blank", siteId);
+    }
+
+    function previewSite(siteId) {
+      const site = getSites().find(item => item.id === siteId);
+      if (!site) return;
+      const title = escapeHtml(site.title);
+      const page = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Georgia,serif;color:#263b36;background:#f6fbf8}.bar{padding:22px 7%;background:#cbeee3;color:#183c35;font:600 14px Arial,sans-serif}.hero{max-width:900px;margin:14vh auto;padding:32px 24px}.hero p{font:14px Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;color:#e26d83}.hero h1{max-width:700px;margin:16px 0;font-size:clamp(42px,8vw,82px);line-height:1.02}.hero button{padding:14px 22px;border:0;background:#e26d83;color:white;font-size:15px}</style><div class="bar">${title}</div><main class="hero"><p>Welcome to</p><h1>${title}</h1><button type="button">Explore</button></main></html>`;
+      const url = URL.createObjectURL(new Blob([page], { type: "text/html" }));
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+
+    document.addEventListener("click", event => {
+      const viewButton = event.target.closest("[data-view]");
+      if (viewButton) {
+        event.preventDefault();
+        showDashboardView(viewButton.dataset.view);
+        return;
+      }
+      const actionButton = event.target.closest("[data-action]");
+      if (!actionButton) return;
+      if (actionButton.dataset.action === "create-site") openSiteDialog();
+      if (actionButton.dataset.action === "use-template") openSiteDialog(actionButton.dataset.template);
+      if (actionButton.dataset.action === "edit-site") editSite(actionButton.dataset.siteId);
+      if (actionButton.dataset.action === "preview-site") previewSite(actionButton.dataset.siteId);
+      if (actionButton.dataset.action === "close-site-dialog") closeSiteDialog();
+      if (actionButton.dataset.action === "remove-avatar") removeProfileImage();
+    });
+
+    document.addEventListener("change", event => {
+      if (event.target.id === "avatarFileInput") saveProfileImage(event);
+    });
+
+    document.addEventListener("submit", event => {
+      if (event.target.id === "siteForm") {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const title = formData.get("title").trim();
+        const siteId = formData.get("siteId");
+        const sites = getSites();
+        if (siteId) {
+          const site = sites.find(item => item.id === siteId);
+          if (!site) return closeSiteDialog();
+          site.title = title.slice(0, 60);
+          site.updatedAt = Date.now();
+        } else {
+          sites.push({ id: window.crypto?.randomUUID?.() || String(Date.now()), title: title.slice(0, 60), template: formData.get("template"), updatedAt: Date.now() });
+        }
+        try {
+          saveSites(sites);
+          closeSiteDialog();
+          showDashboardView("sites");
+        } catch {
+          document.getElementById("siteFormStatus").textContent = "Could not save this site in your browser.";
+        }
+        return;
+      }
+      if (event.target.id === "settingsForm") {
+        event.preventDefault();
+        const user = getSignedInUser();
+        const username = new FormData(event.target).get("username").trim();
+        if (!user || !isValidUsername(username)) return;
+        const users = getLocalUsers().map(account => account.email === user.email ? { ...account, username } : account);
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        updateSignedInDisplay();
+        showDashboardView("settings");
+        document.getElementById("settingsStatus").textContent = "Changes saved.";
+      }
+    });
 
     // Create a browser-local account and sign in immediately.
     async function createAccount() {
@@ -200,7 +495,11 @@
       const signedInUser = getLocalUsers().find(user => user.email === signedInEmail);
       document.getElementById("landingPage").hidden = Boolean(signedInUser);
       document.getElementById("dashboardPage").hidden = !signedInUser;
-      document.getElementById("dashboardWelcome").textContent = signedInUser ? "Welcome, " + signedInUser.email + "!" : "";
+      document.body.classList.toggle("dashboard-mode", Boolean(signedInUser));
+      document.getElementById("dashboardWelcome").textContent = signedInUser ? "Welcome, " + signedInUser.username + "!" : "";
+      document.getElementById("dashboardUsername").textContent = signedInUser ? signedInUser.username : "";
+      renderAvatar(document.getElementById("dashboardAvatar"), signedInUser);
+      if (signedInUser) showDashboardView("dashboard");
     }
     updateSignedInDisplay();
   </script>
