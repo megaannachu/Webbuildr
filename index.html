@@ -11,14 +11,58 @@
 <body>
   <!-- Main page content: logo, creators, and account actions -->
   <main class="container" id="landingPage">
+    <div class="top-account-buttons" aria-label="Account actions">
+      <img class="top-logo" src="https://file.garden/aKtEcZD-hThC8Gxk/webbuildr%20lowercase.png" alt="Web Buildr logo">
+      <button onclick="openSignIn()">Sign In</button>
+      <button onclick="openCreateAccount()">Create Account</button>
+    </div>
     <img class="logo" src="https://file.garden/aKtEcZD-hThC8Gxk/webbuildr%20lowercase.png" alt="Web Buildr logo">
-    <p class="creators">Made by Sade Stephens and Anna Grubbs</p>
+    <div class="creator-credit">
+      <p class="creators">Made by Sade Stephens and Anna Grubbs</p>
+    </div>
 
     <!-- Logged out account buttons: Sign In and Create Account -->
     <div class="account-buttons" id="loggedOutButtons">
       <button onclick="openSignIn()">Sign In</button>
       <button onclick="openCreateAccount()">Create Account</button>
     </div>
+
+    <section class="builder-choices" aria-labelledby="builderChoicesTitle">
+      <h1 id="builderChoicesTitle">Choose how you build</h1>
+      <div class="builder-choice-grid">
+        <article class="builder-choice">
+          <div class="builder-icon visual-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" focusable="false">
+              <path d="M24 7C14.6 7 7 14.2 7 23.2 7 31.5 13.3 39 21.5 39h2.2c2.7 0 4.2-2.8 2.8-5.1-.6-1-.6-2.2-.1-3.2.6-1.2 1.8-1.9 3.2-1.9h2.1c5.3 0 9.3-4.2 9.3-9.4C41 12.7 33.4 7 24 7Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" />
+              <circle cx="16" cy="20" r="2" fill="currentColor" />
+              <circle cx="21" cy="14" r="2" fill="currentColor" />
+              <circle cx="29" cy="14" r="2" fill="currentColor" />
+              <circle cx="34" cy="20" r="2" fill="currentColor" />
+            </svg>
+          </div>
+          <h2>Visual Builder</h2>
+          <p>Drag and drop, no coding required</p>
+        </article>
+        <article class="builder-choice">
+          <div class="builder-icon code-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" focusable="false">
+              <path d="m17 14-10 10 10 10M31 14l10 10-10 10M28 10l-8 28" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <h2>HTML &amp; CSS</h2>
+          <p>Build from scratch, coding required</p>
+        </article>
+        <article class="builder-choice">
+          <div class="builder-icon hybrid-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" focusable="false">
+              <path d="M10 22a14 14 0 0 1 24-9l3 3M37 10v6h-6M38 26a14 14 0 0 1-24 9l-3-3M11 38v-6h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <h2>Hybrid</h2>
+          <p>Use both the visual &amp; code builder</p>
+        </article>
+      </div>
+    </section>
 
     <!-- Logged in welcome area: shows user name and Sign Out button -->
     <div class="welcome-box" id="welcomeBox">

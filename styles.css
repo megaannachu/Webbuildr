@@ -12,7 +12,7 @@
 body {
   min-height: 100vh;
   margin: 0;
-  padding: 40px 20px;
+  padding: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -37,10 +37,27 @@ button {
 }
 
 button:hover { background: rgb(233, 78, 170); transform: translateY(-2px); }
-.container { width: min(850px, 100%); padding: 45px 30px; text-align: center; background: rgba(255, 255, 255, 0.92); border-radius: 24px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12); }
+.container { position: relative; width: 100%; min-height: 100vh; padding: 90px 30px 45px; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.top-account-buttons { position: absolute; top: 0; right: 0; left: 0; min-height: 76px; padding: 12px 24px; display: flex; justify-content: flex-end; align-items: center; gap: 12px; background: white; }
+.top-logo { display: block; width: 150px; max-width: 35%; height: auto; margin-right: auto; }
 .logo { display: block; width: min(630px, 100%); height: auto; margin: 0 auto 25px; }
-.creators { margin: 0 0 25px; color: #ff58c7; font-size: 20px; }
+.creator-credit { width: fit-content; max-width: 100%; margin: 0 auto 25px; padding: 8px 18px; border-radius: 8px; background: white; }
+.creators { margin: 0; color: #403348; font-size: 26px; }
 .account-buttons { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.builder-choices { width: min(1080px, 100%); margin: 48px auto 0; padding: 30px; border-radius: 8px; background: white; }
+.builder-choices > h1 { margin: 0 0 24px; color: #403348; font-size: 32px; }
+.builder-choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.builder-choice { min-width: 0; padding: 22px; border-radius: 8px; text-align: left; }
+.builder-choice:nth-child(1) { background: linear-gradient(135deg, #e4f7fb, #f0fbf8); }
+.builder-choice:nth-child(2) { background: linear-gradient(135deg, #ffe7f2, #fff0f7); }
+.builder-choice:nth-child(3) { background: linear-gradient(135deg, #f0e6f8, #e7f5fa); }
+.builder-icon { display: grid; width: 54px; height: 54px; margin-bottom: 16px; place-items: center; border-radius: 8px; }
+.builder-icon svg { width: 38px; height: 38px; }
+.visual-icon { background: #dff4fa; color: #2488a5; }
+.code-icon { background: #ffe2f1; color: #d94c9a; }
+.hybrid-icon { background: #eee3f7; color: #8051a0; }
+.builder-choice h2 { margin: 0 0 8px; color: #403348; font-size: 21px; }
+.builder-choice p { margin: 0; color: #62596a; font-size: 16px; line-height: 1.5; }
 .welcome-box { display: none; margin-top: 20px; }
 .welcome-name { color: #f567bd; font-size: 24px; font-weight: bold; }
 .signout-button { margin-top: 15px; background: #777; }
@@ -239,9 +256,23 @@ body.dashboard-mode {
 }
 
 @media (max-width: 520px) {
-  body { padding: 24px 14px; }
-  .container { padding: 30px 18px; }
-  .creators { font-size: 16px; }
+  .container { padding: 90px 18px 30px; }
+  .top-account-buttons { min-height: 66px; padding: 10px 14px; gap: 8px; }
+  .top-logo { width: min(105px, 25vw); }
+  .top-account-buttons button { padding: 10px 14px; font-size: 15px; }
+  .creators { font-size: 20px; }
+  .builder-choices { margin-top: 38px; padding: 20px 16px; }
+  .builder-choices > h1 { font-size: 27px; }
+  .builder-choice-grid { grid-template-columns: 1fr; gap: 12px; }
+  .builder-choice { display: grid; grid-template-columns: 54px minmax(0, 1fr); column-gap: 16px; padding: 18px; }
+  .builder-icon { grid-row: span 2; margin: 0; }
+  .builder-choice h2 { align-self: end; }
+  .builder-choice p { align-self: start; }
+}
+
+@media (max-width: 360px) {
+  .top-logo { width: 72px; }
+  .top-account-buttons button { padding: 8px; font-size: 12px; }
 }
 
 body.dashboard-mode {
