@@ -80,13 +80,11 @@
         <button class="sidebar-button" type="button" data-view="resources"><span aria-hidden="true">◇</span> Resources</button>
         <button class="sidebar-button" type="button" data-view="settings"><span aria-hidden="true">⚙</span> Settings</button>
       </nav>
-      <div class="sidebar-note">Made for your next big idea.</div>
     </aside>
 
     <section class="dashboard-main">
       <header class="dashboard-topbar">
         <div>
-          <p class="eyebrow">YOUR CREATIVE WORKSPACE</p>
           <h1 id="dashboardWelcome">Welcome back!</h1>
           <p class="dashboard-subtitle">What would you like to build today?</p>
         </div>
@@ -97,6 +95,38 @@
         </div>
       </header>
       <div id="dashboardContent" class="dashboard-content" aria-live="polite"></div>
+      <section class="builder-editor" id="builderEditor" hidden aria-label="Website editor">
+        <header class="builder-toolbar">
+          <button class="button-secondary builder-back" type="button" data-action="close-editor">← Dashboard</button>
+          <label class="builder-site-name">Site name<input id="builderSiteName" maxlength="60" autocomplete="off"></label>
+          <div class="builder-toolbar-actions">
+            <span id="builderSaveStatus" role="status">Saved</span>
+            <button class="button-secondary" type="button" data-action="preview-builder">Preview</button>
+            <button class="button-primary" type="button" data-action="export-site">Export HTML</button>
+          </div>
+        </header>
+        <div class="builder-workspace">
+          <aside class="builder-sidebar" aria-label="Builder tools">
+            <nav class="builder-rail" role="tablist" aria-label="Builder sections">
+              <button class="builder-tab active" id="builderTabPages" type="button" role="tab" aria-selected="true" aria-controls="builderPanel" data-builder-tab="pages"><span aria-hidden="true">▤</span>Pages</button>
+              <button class="builder-tab" id="builderTabDesign" type="button" role="tab" aria-selected="false" aria-controls="builderPanel" data-builder-tab="design"><span aria-hidden="true">◐</span>Design</button>
+              <button class="builder-tab" id="builderTabElements" type="button" role="tab" aria-selected="false" aria-controls="builderPanel" data-builder-tab="elements"><span aria-hidden="true">＋</span>Elements</button>
+            </nav>
+            <section class="builder-panel" id="builderPanel" role="tabpanel" aria-labelledby="builderTabPages">
+              <div id="builderPanelContent"></div>
+            </section>
+          </aside>
+          <section class="builder-stage" aria-label="Page canvas">
+            <div class="builder-stage-heading"><span id="builderCurrentPageTitle">HOME</span><span>Drag blocks to reorder</span></div>
+            <div class="builder-canvas" id="builderCanvas"></div>
+            <p class="builder-empty" id="builderEmpty" hidden>Your page is blank. Add a block to get started.</p>
+          </section>
+          <aside class="builder-inspector" aria-label="Selected block settings">
+            <h2>Block settings</h2>
+            <div id="builderInspector"><p class="inspector-empty">Select a block on the page to edit it.</p></div>
+          </aside>
+        </div>
+      </section>
       <dialog class="site-dialog" id="siteDialog" aria-labelledby="siteDialogTitle">
         <form id="siteForm">
           <p class="eyebrow">YOUR NEXT PROJECT</p>
@@ -111,6 +141,10 @@
             <button class="button-primary" type="submit">Save site</button>
           </div>
         </form>
+      </dialog>
+      <dialog class="preview-dialog" id="sitePreviewDialog" aria-labelledby="previewDialogTitle">
+        <header class="preview-dialog-header"><h2 id="previewDialogTitle">Site preview</h2><button class="button-secondary" type="button" data-action="close-preview">Close</button></header>
+        <iframe id="sitePreviewFrame" title="Website preview" sandbox="allow-same-origin"></iframe>
       </dialog>
     </section>
   </main>
@@ -155,6 +189,20 @@
       { id: "portfolio", name: "Portfolio", description: "Showcase your work and experience.", color: "pink" },
       { id: "studio", name: "Studio", description: "A polished home for a small business.", color: "yellow" }
     ];
+    const BLOCK_TONES = ["ink", "rose", "moss"];
+    const DESIGN_PRESETS = {
+      backgrounds: { paper: "#ffffff", mint: "#e9f6f0", blush: "#fff0f4", butter: "#fff8df" },
+      fonts: { serif: "Georgia, serif", sans: "Arial, sans-serif", playful: "'DynaPuff', cursive" }
+    };
+    let activeBuilderSiteId = "";
+    let activeBuilderSite = null;
+    let activeBuilderPageId = "";
+    let activeBuilderTab = "pages";
+    let selectedBlockId = "";
+    let pointerDragBlockId = "";
+    let pointerDragTargetId = "";
+    let pointerDragAfterTarget = false;
+    let builderSaveTimer = 0;
 
     function show(id) { document.getElementById(id).classList.add("active"); }
     function hide(id) { document.getElementById(id).classList.remove("active"); }
@@ -305,7 +353,7 @@
       if (!user) return [];
       try {
         const sites = JSON.parse(localStorage.getItem("webbuildrSites:" + user.email) || "[]");
-        return Array.isArray(sites) ? sites : [];
+        return Array.isArray(sites) ? sites.map(ensureSitePages) : [];
       } catch {
         return [];
       }
@@ -315,6 +363,284 @@
       const user = getSignedInUser();
       if (!user) return;
       localStorage.setItem("webbuildrSites:" + user.email, JSON.stringify(sites));
+    }
+
+    function makeBlock(type, content = {}) {
+      const defaults = {
+        heading: { text: "Placeholder text" },
+        text: { text: "Placeholder text" },
+        image: { src: "", alt: "" },
+        button: { text: "Placeholder text", href: "#" },
+        divider: {}
+      };
+      return {
+        id: window.crypto?.randomUUID?.() || String(Date.now() + Math.random()),
+        type,
+        content: { ...(defaults[type] || {}), ...content },
+        style: { align: "left", tone: "ink" }
+      };
+    }
+
+    function starterBlocks(template) {
+      if (template === "portfolio") return [
+        makeBlock("heading", { text: "Placeholder text" }),
+        makeBlock("text", { text: "Placeholder text" }),
+        makeBlock("button", { text: "Placeholder text", href: "#" })
+      ];
+      if (template === "studio") return [
+        makeBlock("heading", { text: "Placeholder text" }),
+        makeBlock("text", { text: "Placeholder text" }),
+        makeBlock("button", { text: "Placeholder text", href: "mailto:hello@example.com" })
+      ];
+      return [];
+    }
+
+    function ensureSitePages(site) {
+      if (!Array.isArray(site.pages) || !site.pages.length) {
+        site.pages = [{ id: "page-home", title: "Home", blocks: starterBlocks(site.template) }];
+      }
+      site.pages.forEach(page => {
+        if (!Array.isArray(page.blocks)) page.blocks = [];
+      });
+      if (!site.design || typeof site.design !== "object") site.design = {};
+      if (!DESIGN_PRESETS.backgrounds[site.design.background]) site.design.background = "paper";
+      if (!DESIGN_PRESETS.fonts[site.design.font]) site.design.font = "serif";
+      return site;
+    }
+
+    function getSiteBlocks(site) {
+      ensureSitePages(site);
+      const page = site.pages.find(item => item.id === activeBuilderPageId) || site.pages[0];
+      activeBuilderPageId = page.id;
+      return page.blocks;
+    }
+
+    function makeNewSite(title, template) {
+      return {
+        id: window.crypto?.randomUUID?.() || String(Date.now()),
+        title,
+        template,
+        design: { background: "paper", font: "serif" },
+        pages: [{ id: "page-home", title: "Home", blocks: starterBlocks(template) }],
+        updatedAt: Date.now()
+      };
+    }
+
+    function blockTone(block) {
+      return BLOCK_TONES.includes(block.style?.tone) ? block.style.tone : "ink";
+    }
+
+    function blockAlignment(block) {
+      return ["left", "center", "right"].includes(block.style?.align) ? block.style.align : "left";
+    }
+
+    function safeWebAddress(value) {
+      const address = String(value || "").trim();
+      return /^(https?:|mailto:|tel:|#)/i.test(address) ? address : "";
+    }
+
+    function makeCanvasBlock(block) {
+      const element = document.createElement("div");
+      element.className = `canvas-block tone-${blockTone(block)} align-${blockAlignment(block)}`;
+      element.dataset.blockId = block.id;
+      element.tabIndex = 0;
+      element.setAttribute("role", "button");
+      element.setAttribute("aria-pressed", String(block.id === selectedBlockId));
+      if (block.id === selectedBlockId) element.classList.add("selected");
+
+      let content;
+      if (block.type === "heading") {
+        content = document.createElement("h1");
+        content.textContent = block.content.text || "";
+      } else if (block.type === "text") {
+        content = document.createElement("p");
+        content.textContent = block.content.text || "";
+      } else if (block.type === "image") {
+        const source = safeWebAddress(block.content.src);
+        if (source) {
+          content = document.createElement("img");
+          content.src = source;
+          content.alt = block.content.alt || "";
+        } else {
+          content = document.createElement("div");
+          content.className = "canvas-image-placeholder";
+          content.textContent = "Add an image URL in block settings";
+        }
+      } else if (block.type === "button") {
+        content = document.createElement("span");
+        content.className = "canvas-button-preview";
+        content.textContent = block.content.text || "Button";
+      } else {
+        content = document.createElement("hr");
+      }
+      content.classList.add("canvas-block-content");
+      element.append(content);
+      return element;
+    }
+
+    function renderBuilder() {
+      const site = activeBuilderSite;
+      if (!site) return closeBuilder();
+      const blocks = getSiteBlocks(site);
+      const canvas = document.getElementById("builderCanvas");
+      canvas.replaceChildren(...blocks.map(makeCanvasBlock));
+      canvas.style.backgroundColor = DESIGN_PRESETS.backgrounds[site.design.background];
+      canvas.style.fontFamily = DESIGN_PRESETS.fonts[site.design.font];
+      document.getElementById("builderEmpty").hidden = blocks.length > 0;
+      document.getElementById("builderSiteName").value = site.title;
+      const page = site.pages.find(item => item.id === activeBuilderPageId);
+      document.getElementById("builderCurrentPageTitle").textContent = page.title.toUpperCase();
+      renderBuilderPanel(site);
+      renderBlockInspector(blocks.find(block => block.id === selectedBlockId));
+    }
+
+    function renderBuilderPanel(site) {
+      const panel = document.getElementById("builderPanelContent");
+      const page = site.pages.find(item => item.id === activeBuilderPageId) || site.pages[0];
+      const tabTitles = { pages: "Pages", design: "Design", elements: "Elements" };
+      document.querySelectorAll(".builder-tab").forEach(button => {
+        const selected = button.dataset.builderTab === activeBuilderTab;
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-selected", String(selected));
+      });
+      document.getElementById("builderPanel").setAttribute("aria-labelledby", `builderTab${activeBuilderTab[0].toUpperCase()}${activeBuilderTab.slice(1)}`);
+      if (activeBuilderTab === "pages") {
+        panel.innerHTML = `<h2>${tabTitles.pages}</h2><div class="builder-page-list">${site.pages.map(item => `<button class="builder-page-item ${item.id === page.id ? "active" : ""}" type="button" data-page-id="${escapeHtml(item.id)}"><span aria-hidden="true">▧</span><span>${escapeHtml(item.title)}</span></button>`).join("")}</div><button class="builder-add-page" type="button" data-action="add-page">＋ Add page</button><label class="builder-page-name">Page name<input id="builderPageName" maxlength="40" value="${escapeHtml(page.title)}"></label>${site.pages.length > 1 ? '<button class="builder-delete-page" type="button" data-action="delete-page">Delete page</button>' : ""}`;
+      } else if (activeBuilderTab === "design") {
+        panel.innerHTML = `<h2>${tabTitles.design}</h2><p class="builder-panel-note">Site-wide style</p><label class="builder-page-name">Page background<select data-site-style="background"><option value="paper" ${site.design.background === "paper" ? "selected" : ""}>Paper</option><option value="mint" ${site.design.background === "mint" ? "selected" : ""}>Mint</option><option value="blush" ${site.design.background === "blush" ? "selected" : ""}>Blush</option><option value="butter" ${site.design.background === "butter" ? "selected" : ""}>Butter</option></select></label><label class="builder-page-name">Font<select data-site-style="font"><option value="serif" ${site.design.font === "serif" ? "selected" : ""}>Editorial serif</option><option value="sans" ${site.design.font === "sans" ? "selected" : ""}>Clean sans</option><option value="playful" ${site.design.font === "playful" ? "selected" : ""}>Playful</option></select></label>`;
+      } else {
+        panel.innerHTML = `<h2>${tabTitles.elements}</h2><p class="builder-panel-note">Add to ${escapeHtml(page.title)}</p><div class="builder-element-list"><button type="button" data-add-block="heading"><span aria-hidden="true">T</span> Heading</button><button type="button" data-add-block="text"><span aria-hidden="true">¶</span> Text</button><button type="button" data-add-block="image"><span aria-hidden="true">▧</span> Image</button><button type="button" data-add-block="button"><span aria-hidden="true">↗</span> Button</button><button type="button" data-add-block="divider"><span aria-hidden="true">―</span> Divider</button></div>`;
+      }
+    }
+
+    function addBuilderPage() {
+      if (!activeBuilderSite) return;
+      const page = { id: window.crypto?.randomUUID?.() || `page-${Date.now()}`, title: `Page ${activeBuilderSite.pages.length + 1}`, blocks: [] };
+      activeBuilderSite.pages.push(page);
+      activeBuilderPageId = page.id;
+      selectedBlockId = "";
+      renderBuilder();
+      scheduleBuilderSave();
+    }
+
+    function deleteBuilderPage() {
+      if (!activeBuilderSite || activeBuilderSite.pages.length < 2) return;
+      const pageIndex = activeBuilderSite.pages.findIndex(page => page.id === activeBuilderPageId);
+      activeBuilderSite.pages = activeBuilderSite.pages.filter(page => page.id !== activeBuilderPageId);
+      activeBuilderPageId = activeBuilderSite.pages[Math.max(0, pageIndex - 1)].id;
+      selectedBlockId = "";
+      renderBuilder();
+      scheduleBuilderSave();
+    }
+
+    function renderBlockInspector(block) {
+      const inspector = document.getElementById("builderInspector");
+      if (!block) {
+        inspector.innerHTML = '<p class="inspector-empty">Select a block on the page to edit it.</p>';
+        return;
+      }
+      const contentField = block.type === "image"
+        ? `<label>Image URL<input data-property="src" type="url" value="${escapeHtml(block.content.src || "")}" placeholder="https://example.com/image.jpg"></label><label>Alt text<input data-property="alt" value="${escapeHtml(block.content.alt || "")}" placeholder="Describe the image"></label>`
+        : block.type === "divider"
+          ? '<p class="inspector-empty">A simple divider between page content.</p>'
+          : `<label>${block.type === "heading" ? "Heading" : block.type === "button" ? "Button label" : "Text"}<textarea data-property="text" rows="${block.type === "heading" ? 3 : 5}" maxlength="500">${escapeHtml(block.content.text || "")}</textarea></label>${block.type === "button" ? `<label>Link<input data-property="href" type="url" value="${escapeHtml(block.content.href || "")}" placeholder="https://example.com or #section"></label>` : ""}`;
+      inspector.innerHTML = `${contentField}<label>Alignment<select data-style="align"><option value="left" ${blockAlignment(block) === "left" ? "selected" : ""}>Left</option><option value="center" ${blockAlignment(block) === "center" ? "selected" : ""}>Center</option><option value="right" ${blockAlignment(block) === "right" ? "selected" : ""}>Right</option></select></label><label>Color<select data-style="tone"><option value="ink" ${blockTone(block) === "ink" ? "selected" : ""}>Ink</option><option value="rose" ${blockTone(block) === "rose" ? "selected" : ""}>Rose</option><option value="moss" ${blockTone(block) === "moss" ? "selected" : ""}>Moss</option></select></label><div class="inspector-actions"><button class="button-secondary" type="button" data-action="move-block-up">Move up</button><button class="button-secondary" type="button" data-action="move-block-down">Move down</button><button class="button-secondary" type="button" data-action="duplicate-block">Duplicate</button><button class="button-danger" type="button" data-action="delete-block">Delete block</button></div>`;
+    }
+
+    function openBuilder(siteId) {
+      const site = getSites().find(item => item.id === siteId);
+      if (!site) return;
+      activeBuilderSiteId = site.id;
+      activeBuilderSite = site;
+      ensureSitePages(site);
+      activeBuilderPageId = site.pages[0].id;
+      activeBuilderTab = "pages";
+      selectedBlockId = "";
+      document.querySelector(".dashboard-topbar").hidden = true;
+      document.getElementById("dashboardContent").hidden = true;
+      document.getElementById("builderEditor").hidden = false;
+      renderBuilder();
+    }
+
+    function closeBuilder() {
+      window.clearTimeout(builderSaveTimer);
+      persistBuilderSite();
+      activeBuilderSiteId = "";
+      activeBuilderSite = null;
+      activeBuilderPageId = "";
+      selectedBlockId = "";
+      document.getElementById("builderEditor").hidden = true;
+      document.querySelector(".dashboard-topbar").hidden = false;
+      document.getElementById("dashboardContent").hidden = false;
+      showDashboardView("sites");
+    }
+
+    function scheduleBuilderSave() {
+      document.getElementById("builderSaveStatus").textContent = "Unsaved changes";
+      window.clearTimeout(builderSaveTimer);
+      builderSaveTimer = window.setTimeout(() => {
+        document.getElementById("builderSaveStatus").textContent = persistBuilderSite() ? "Saved" : "Could not save";
+      }, 350);
+    }
+
+    function persistBuilderSite() {
+      if (!activeBuilderSite) return false;
+      try {
+        const sites = getSites();
+        const index = sites.findIndex(site => site.id === activeBuilderSiteId);
+        if (index < 0) return false;
+        activeBuilderSite.updatedAt = Date.now();
+        sites[index] = activeBuilderSite;
+        saveSites(sites);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function addBuilderBlock(type) {
+      const site = activeBuilderSite;
+      if (!site) return;
+      const block = makeBlock(type);
+      getSiteBlocks(site).push(block);
+      selectedBlockId = block.id;
+      renderBuilder();
+      scheduleBuilderSave();
+    }
+
+    function moveSelectedBlock(offset) {
+      const site = activeBuilderSite;
+      if (!site) return;
+      const blocks = getSiteBlocks(site);
+      const index = blocks.findIndex(block => block.id === selectedBlockId);
+      const target = index + offset;
+      if (index < 0 || target < 0 || target >= blocks.length) return;
+      [blocks[index], blocks[target]] = [blocks[target], blocks[index]];
+      renderBuilder();
+      scheduleBuilderSave();
+    }
+
+    function duplicateSelectedBlock() {
+      const site = activeBuilderSite;
+      if (!site) return;
+      const blocks = getSiteBlocks(site);
+      const index = blocks.findIndex(block => block.id === selectedBlockId);
+      if (index < 0) return;
+      const clone = JSON.parse(JSON.stringify(blocks[index]));
+      clone.id = window.crypto?.randomUUID?.() || String(Date.now() + Math.random());
+      blocks.splice(index + 1, 0, clone);
+      selectedBlockId = clone.id;
+      renderBuilder();
+      scheduleBuilderSave();
+    }
+
+    function deleteSelectedBlock() {
+      const site = activeBuilderSite;
+      if (!site) return;
+      site.pages[0].blocks = getSiteBlocks(site).filter(block => block.id !== selectedBlockId);
+      selectedBlockId = "";
+      renderBuilder();
+      scheduleBuilderSave();
     }
 
     function siteCard(site) {
@@ -327,7 +653,7 @@
           <div class="site-information">
             <div><h3>${escapeHtml(site.title)}</h3><p>Saved in your workspace</p></div>
             <div class="site-buttons">
-              <button class="button-secondary" type="button" data-action="edit-site" data-site-id="${escapeHtml(site.id)}">Rename</button>
+              <button class="button-secondary" type="button" data-action="edit-site" data-site-id="${escapeHtml(site.id)}">Edit</button>
               <button class="button-primary" type="button" data-action="preview-site" data-site-id="${escapeHtml(site.id)}">Preview</button>
             </div>
           </div>
@@ -352,6 +678,9 @@
       const content = document.getElementById("dashboardContent");
       const user = getSignedInUser();
       if (!user || !content) return;
+      document.getElementById("builderEditor").hidden = true;
+      document.querySelector(".dashboard-topbar").hidden = false;
+      content.hidden = false;
       document.querySelectorAll(".sidebar-button").forEach(button => {
         button.classList.toggle("active", button.dataset.view === view);
       });
@@ -393,17 +722,59 @@
     }
 
     function editSite(siteId) {
-      openSiteDialog("blank", siteId);
+      openBuilder(siteId);
     }
 
-    function previewSite(siteId) {
-      const site = getSites().find(item => item.id === siteId);
+    function renderBlockHtml(block) {
+      const alignment = blockAlignment(block);
+      const tone = blockTone(block);
+      if (block.type === "heading") return `<h1 class="tone-${tone} align-${alignment}">${escapeHtml(block.content.text || "")}</h1>`;
+      if (block.type === "text") return `<p class="tone-${tone} align-${alignment}">${escapeHtml(block.content.text || "")}</p>`;
+      if (block.type === "image") {
+        const source = safeWebAddress(block.content.src);
+        return source ? `<img class="site-image align-${alignment}" src="${escapeHtml(source)}" alt="${escapeHtml(block.content.alt || "")}">` : "";
+      }
+      if (block.type === "button") {
+        const href = safeWebAddress(block.content.href) || "#";
+        return `<p class="align-${alignment}"><a class="site-button" href="${escapeHtml(href)}">${escapeHtml(block.content.text || "Button")}</a></p>`;
+      }
+      return block.type === "divider" ? "<hr>" : "";
+    }
+
+    function buildSiteHtml(site) {
+      ensureSitePages(site);
+      const title = escapeHtml(site.title || "Untitled site");
+      const background = DESIGN_PRESETS.backgrounds[site.design?.background] || DESIGN_PRESETS.backgrounds.paper;
+      const font = DESIGN_PRESETS.fonts[site.design?.font] || DESIGN_PRESETS.fonts.serif;
+      const pages = site.pages.map((page, index) => ({
+        id: `page-${String(page.id || index + 1).replace(/[^A-Za-z0-9_-]/g, "")}`,
+        title: page.title || `Page ${index + 1}`,
+        content: page.blocks.map(renderBlockHtml).join("\n")
+      }));
+      const navigation = pages.length > 1
+        ? `<nav class="site-nav" aria-label="Pages">${pages.map(page => `<a href="#${escapeHtml(page.id)}">${escapeHtml(page.title)}</a>`).join("")}</nav>`
+        : "";
+      const pageSections = pages.map(page => `<section class="site-main site-page" id="${escapeHtml(page.id)}"><h1>${escapeHtml(page.title)}</h1>${page.content}</section>`).join("\n");
+      return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>*{box-sizing:border-box}body{margin:0;background:${background};color:#25251f;font-family:${font}}.site-header{padding:20px 7%;background:#fff}.site-nav{display:flex;flex-wrap:wrap;gap:8px 20px;padding:14px 7%;background:#fff;border-top:1px solid #eee}.site-nav a{color:#8f3158;font:600 14px Arial,sans-serif;text-decoration:none}.site-page{width:min(760px,calc(100% - 40px));min-height:75vh;margin:48px auto;padding:clamp(24px,7vw,72px);background:#fff;scroll-margin-top:24px}.site-page h1{font-size:clamp(38px,7vw,72px);line-height:1.05;margin:0 0 24px}.site-page p{font-size:18px;line-height:1.7}.site-page hr{border:0;border-top:1px solid #dedbd2;margin:28px 0}.site-image{display:block;max-width:100%;height:auto;margin:20px auto}.align-left{text-align:left}.align-center{text-align:center}.align-right{text-align:right}.tone-ink{color:#25251f}.tone-rose{color:#b54270}.tone-moss{color:#3e6e58}.site-button{display:inline-block;padding:13px 20px;background:#b54270;color:#fff;text-decoration:none;font:600 15px Arial,sans-serif}</style></head><body><header class="site-header">${title}</header>${navigation}${pageSections}<\/body></html>`;
+    }
+
+    function previewSite(siteId = activeBuilderSiteId) {
+      const site = activeBuilderSite?.id === siteId ? activeBuilderSite : getSites().find(item => item.id === siteId);
       if (!site) return;
-      const title = escapeHtml(site.title);
-      const page = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Georgia,serif;color:#263b36;background:#f6fbf8}.bar{padding:22px 7%;background:#cbeee3;color:#183c35;font:600 14px Arial,sans-serif}.hero{max-width:900px;margin:14vh auto;padding:32px 24px}.hero p{font:14px Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;color:#e26d83}.hero h1{max-width:700px;margin:16px 0;font-size:clamp(42px,8vw,82px);line-height:1.02}.hero button{padding:14px 22px;border:0;background:#e26d83;color:white;font-size:15px}</style><div class="bar">${title}</div><main class="hero"><p>Welcome to</p><h1>${title}</h1><button type="button">Explore</button></main></html>`;
-      const url = URL.createObjectURL(new Blob([page], { type: "text/html" }));
-      window.open(url, "_blank", "noopener,noreferrer");
-      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      document.getElementById("previewDialogTitle").textContent = site.title;
+      document.getElementById("sitePreviewFrame").srcdoc = buildSiteHtml(site);
+      document.getElementById("sitePreviewDialog").showModal();
+    }
+
+    function exportSite() {
+      const site = activeBuilderSite;
+      if (!site) return;
+      const blobUrl = URL.createObjectURL(new Blob([buildSiteHtml(site)], { type: "text/html" }));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = (site.title || "my-website").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".html";
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     }
 
     document.addEventListener("click", event => {
@@ -413,15 +784,152 @@
         showDashboardView(viewButton.dataset.view);
         return;
       }
+      const builderTab = event.target.closest("[data-builder-tab]");
+      if (builderTab) {
+        activeBuilderTab = builderTab.dataset.builderTab;
+        renderBuilder();
+        return;
+      }
+      const pageButton = event.target.closest("[data-page-id]");
+      if (pageButton && activeBuilderSite) {
+        activeBuilderPageId = pageButton.dataset.pageId;
+        selectedBlockId = "";
+        renderBuilder();
+        return;
+      }
+      const addBlockButton = event.target.closest("[data-add-block]");
+      if (addBlockButton && activeBuilderSiteId) {
+        addBuilderBlock(addBlockButton.dataset.addBlock);
+        return;
+      }
       const actionButton = event.target.closest("[data-action]");
       if (!actionButton) return;
       if (actionButton.dataset.action === "create-site") openSiteDialog();
       if (actionButton.dataset.action === "use-template") openSiteDialog(actionButton.dataset.template);
       if (actionButton.dataset.action === "edit-site") editSite(actionButton.dataset.siteId);
       if (actionButton.dataset.action === "preview-site") previewSite(actionButton.dataset.siteId);
+      if (actionButton.dataset.action === "close-editor") closeBuilder();
+      if (actionButton.dataset.action === "add-page") addBuilderPage();
+      if (actionButton.dataset.action === "delete-page") deleteBuilderPage();
+      if (actionButton.dataset.action === "preview-builder") previewSite();
+      if (actionButton.dataset.action === "export-site") exportSite();
+      if (actionButton.dataset.action === "close-preview") document.getElementById("sitePreviewDialog").close();
+      if (actionButton.dataset.action === "move-block-up") moveSelectedBlock(-1);
+      if (actionButton.dataset.action === "move-block-down") moveSelectedBlock(1);
+      if (actionButton.dataset.action === "duplicate-block") duplicateSelectedBlock();
+      if (actionButton.dataset.action === "delete-block") deleteSelectedBlock();
       if (actionButton.dataset.action === "close-site-dialog") closeSiteDialog();
       if (actionButton.dataset.action === "remove-avatar") removeProfileImage();
     });
+
+    document.getElementById("builderCanvas").addEventListener("click", event => {
+      const blockElement = event.target.closest("[data-block-id]");
+      if (!blockElement) return;
+      selectedBlockId = blockElement.dataset.blockId;
+      renderBuilder();
+    });
+
+    document.getElementById("builderCanvas").addEventListener("keydown", event => {
+      const blockElement = event.target.closest("[data-block-id]");
+      if (blockElement && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        selectedBlockId = blockElement.dataset.blockId;
+        renderBuilder();
+      }
+    });
+
+    document.getElementById("builderCanvas").addEventListener("pointerdown", event => {
+      if (event.button !== 0) return;
+      const blockElement = event.target.closest("[data-block-id]");
+      if (!blockElement) return;
+      pointerDragBlockId = blockElement.dataset.blockId;
+      pointerDragTargetId = "";
+      blockElement.classList.add("dragging");
+    });
+
+    document.addEventListener("pointermove", event => {
+      if (!pointerDragBlockId) return;
+      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-block-id]");
+      document.querySelectorAll(".canvas-block.drop-before, .canvas-block.drop-after").forEach(block => block.classList.remove("drop-before", "drop-after"));
+      if (!target || target.dataset.blockId === pointerDragBlockId) {
+        pointerDragTargetId = "";
+        return;
+      }
+      pointerDragTargetId = target.dataset.blockId;
+      pointerDragAfterTarget = event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+      target.classList.add(pointerDragAfterTarget ? "drop-after" : "drop-before");
+    });
+
+    function finishBlockDrag() {
+      if (!pointerDragBlockId) return;
+      const site = activeBuilderSite;
+      const blocks = site ? getSiteBlocks(site) : [];
+      const fromIndex = blocks.findIndex(block => block.id === pointerDragBlockId);
+      const movedId = pointerDragBlockId;
+      if (fromIndex >= 0 && pointerDragTargetId && pointerDragTargetId !== movedId) {
+        const [moved] = blocks.splice(fromIndex, 1);
+        const targetIndex = blocks.findIndex(block => block.id === pointerDragTargetId);
+        if (targetIndex >= 0) {
+          blocks.splice(targetIndex + (pointerDragAfterTarget ? 1 : 0), 0, moved);
+          selectedBlockId = moved.id;
+          renderBuilder();
+          scheduleBuilderSave();
+        } else {
+          blocks.splice(fromIndex, 0, moved);
+        }
+      }
+      pointerDragBlockId = "";
+      pointerDragTargetId = "";
+      document.querySelectorAll(".canvas-block.dragging, .canvas-block.drop-before, .canvas-block.drop-after").forEach(block => block.classList.remove("dragging", "drop-before", "drop-after"));
+    }
+
+    document.addEventListener("pointerup", finishBlockDrag);
+    document.addEventListener("pointercancel", finishBlockDrag);
+
+    document.getElementById("builderEditor").addEventListener("input", event => {
+      const site = activeBuilderSite;
+      if (!site) return;
+      if (event.target.id === "builderSiteName") {
+        site.title = event.target.value.slice(0, 60);
+      } else if (event.target.id === "builderPageName") {
+        const page = site.pages.find(item => item.id === activeBuilderPageId);
+        if (!page) return;
+        page.title = event.target.value.slice(0, 40);
+        document.getElementById("builderCurrentPageTitle").textContent = page.title.toUpperCase();
+      } else if (event.target.dataset.property) {
+        const block = getSiteBlocks(site).find(item => item.id === selectedBlockId);
+        if (!block) return;
+        block.content[event.target.dataset.property] = event.target.value;
+        renderCanvasOnly(site);
+      } else {
+        return;
+      }
+      scheduleBuilderSave();
+    });
+
+    document.getElementById("builderEditor").addEventListener("change", event => {
+      if (event.target.dataset.siteStyle) {
+        const site = activeBuilderSite;
+        if (!site) return;
+        site.design[event.target.dataset.siteStyle] = event.target.value;
+        renderBuilder();
+        scheduleBuilderSave();
+        return;
+      }
+      if (!event.target.dataset.style) return;
+      const site = activeBuilderSite;
+      const block = site && getSiteBlocks(site).find(item => item.id === selectedBlockId);
+      if (!block) return;
+      block.style[event.target.dataset.style] = event.target.value;
+      renderBuilder();
+      scheduleBuilderSave();
+    });
+
+    function renderCanvasOnly(site) {
+      const blocks = getSiteBlocks(site);
+      document.getElementById("builderCanvas").replaceChildren(...blocks.map(makeCanvasBlock));
+      document.getElementById("builderEmpty").hidden = blocks.length > 0;
+    }
 
     document.addEventListener("change", event => {
       if (event.target.id === "avatarFileInput") saveProfileImage(event);
@@ -440,7 +948,16 @@
           site.title = title.slice(0, 60);
           site.updatedAt = Date.now();
         } else {
-          sites.push({ id: window.crypto?.randomUUID?.() || String(Date.now()), title: title.slice(0, 60), template: formData.get("template"), updatedAt: Date.now() });
+          const site = makeNewSite(title.slice(0, 60), formData.get("template"));
+          sites.push(site);
+          try {
+            saveSites(sites);
+            closeSiteDialog();
+            openBuilder(site.id);
+          } catch {
+            document.getElementById("siteFormStatus").textContent = "Could not save this site in your browser.";
+          }
+          return;
         }
         try {
           saveSites(sites);
