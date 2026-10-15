@@ -277,72 +277,6 @@
       }
     }
 
-    function resizeProfileImage(file) {
-      const supportedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
-      if (!supportedTypes.includes(file.type)) return Promise.reject(new Error("Choose a JPG, PNG, WebP, GIF, or AVIF image."));
-      if (file.size > 10 * 1024 * 1024) return Promise.reject(new Error("Choose an image smaller than 10 MB."));
-
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error("This image could not be read."));
-        reader.onload = () => {
-          const image = new Image();
-          image.onerror = () => reject(new Error("This image could not be opened."));
-          image.onload = () => {
-            const scale = Math.min(1, 512 / image.naturalWidth, 512 / image.naturalHeight);
-            const canvas = document.createElement("canvas");
-            canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-            canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-            const context = canvas.getContext("2d");
-            if (!context) return reject(new Error("Image processing is not supported in this browser."));
-            context.drawImage(image, 0, 0, canvas.width, canvas.height);
-            try {
-              resolve(canvas.toDataURL("image/jpeg", 0.82));
-            } catch {
-              reject(new Error("This image could not be processed."));
-            }
-          };
-          image.src = reader.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    async function saveProfileImage(event) {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      const status = document.getElementById("avatarStatus");
-      status.textContent = "Preparing photo...";
-      try {
-        const avatarDataUrl = await resizeProfileImage(file);
-        const user = getSignedInUser();
-        if (!user) return;
-        const users = getLocalUsers().map(account => account.email === user.email ? { ...account, avatarDataUrl } : account);
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-        updateSignedInDisplay();
-        showDashboardView("settings");
-        document.getElementById("avatarStatus").textContent = "Profile photo saved.";
-      } catch (error) {
-        status.textContent = error.message || "Could not save this photo in your browser.";
-      } finally {
-        event.target.value = "";
-      }
-    }
-
-    function removeProfileImage() {
-      const user = getSignedInUser();
-      if (!user) return;
-      const users = getLocalUsers().map(account => account.email === user.email ? { ...account, avatarDataUrl: "" } : account);
-      try {
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-        updateSignedInDisplay();
-        showDashboardView("settings");
-        document.getElementById("avatarStatus").textContent = "Profile photo removed.";
-      } catch {
-        document.getElementById("avatarStatus").textContent = "Could not update your profile in this browser.";
-      }
-    }
-
     function getSignedInUser() {
       const email = localStorage.getItem(SESSION_STORAGE_KEY);
       return getLocalUsers().find(user => user.email === email) || null;
@@ -693,8 +627,7 @@
       } else if (view === "resources") {
         content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">LEARN AND BUILD</p><h2>Resources</h2><p>Helpful references for making the web your own.</p></div></div><div class="resource-list"><a href="https://developer.mozilla.org/en-US/docs/Learn/HTML" target="_blank" rel="noreferrer"><span class="resource-mark">01</span><span><strong>HTML basics</strong><small>Structure pages with headings, links, images, and more.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/CSS" target="_blank" rel="noreferrer"><span class="resource-mark">02</span><span><strong>CSS basics</strong><small>Style and arrange the content on your pages.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript" target="_blank" rel="noreferrer"><span class="resource-mark">03</span><span><strong>JavaScript basics</strong><small>Add interaction and behavior to a website.</small></span><span aria-hidden="true">↗</span></a></div>`;
       } else if (view === "settings") {
-        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">YOUR ACCOUNT</p><h2>Settings</h2><p>Update your name and profile photo.</p></div></div><form class="settings-form" id="settingsForm"><div class="avatar-settings"><div class="profile-circle avatar-preview" id="settingsAvatar" aria-hidden="true"></div><div class="avatar-controls"><label for="avatarFileInput">Profile photo</label><input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif"><small>JPG, PNG, WebP, GIF, or AVIF. Up to 10 MB.</small>${user.avatarDataUrl ? '<button class="button-secondary remove-avatar-button" type="button" data-action="remove-avatar">Remove photo</button>' : ""}<span class="settings-status" id="avatarStatus" role="status"></span></div></div><label for="settingsUsername">Username</label><input id="settingsUsername" name="username" maxlength="20" minlength="3" pattern="[A-Za-z0-9_]{3,20}" required value="${escapeHtml(user.username)}"><p>Use 3-20 letters, numbers, or underscores.</p><button class="button-primary" type="submit">Save changes</button><span class="settings-status" id="settingsStatus" role="status"></span></form>`;
-        renderAvatar(document.getElementById("settingsAvatar"), user);
+        content.innerHTML = "";
       } else {
         const latestSite = sites[0];
         content.innerHTML = `
@@ -819,7 +752,6 @@
       if (actionButton.dataset.action === "duplicate-block") duplicateSelectedBlock();
       if (actionButton.dataset.action === "delete-block") deleteSelectedBlock();
       if (actionButton.dataset.action === "close-site-dialog") closeSiteDialog();
-      if (actionButton.dataset.action === "remove-avatar") removeProfileImage();
     });
 
     document.getElementById("builderCanvas").addEventListener("click", event => {
@@ -931,53 +863,36 @@
       document.getElementById("builderEmpty").hidden = blocks.length > 0;
     }
 
-    document.addEventListener("change", event => {
-      if (event.target.id === "avatarFileInput") saveProfileImage(event);
-    });
-
     document.addEventListener("submit", event => {
-      if (event.target.id === "siteForm") {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        const title = formData.get("title").trim();
-        const siteId = formData.get("siteId");
-        const sites = getSites();
-        if (siteId) {
-          const site = sites.find(item => item.id === siteId);
-          if (!site) return closeSiteDialog();
-          site.title = title.slice(0, 60);
-          site.updatedAt = Date.now();
-        } else {
-          const site = makeNewSite(title.slice(0, 60), formData.get("template"));
-          sites.push(site);
-          try {
-            saveSites(sites);
-            closeSiteDialog();
-            openBuilder(site.id);
-          } catch {
-            document.getElementById("siteFormStatus").textContent = "Could not save this site in your browser.";
-          }
-          return;
-        }
+      if (event.target.id !== "siteForm") return;
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const title = formData.get("title").trim();
+      const siteId = formData.get("siteId");
+      const sites = getSites();
+      if (siteId) {
+        const site = sites.find(item => item.id === siteId);
+        if (!site) return closeSiteDialog();
+        site.title = title.slice(0, 60);
+        site.updatedAt = Date.now();
+      } else {
+        const site = makeNewSite(title.slice(0, 60), formData.get("template"));
+        sites.push(site);
         try {
           saveSites(sites);
           closeSiteDialog();
-          showDashboardView("sites");
+          openBuilder(site.id);
         } catch {
           document.getElementById("siteFormStatus").textContent = "Could not save this site in your browser.";
         }
         return;
       }
-      if (event.target.id === "settingsForm") {
-        event.preventDefault();
-        const user = getSignedInUser();
-        const username = new FormData(event.target).get("username").trim();
-        if (!user || !isValidUsername(username)) return;
-        const users = getLocalUsers().map(account => account.email === user.email ? { ...account, username } : account);
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-        updateSignedInDisplay();
-        showDashboardView("settings");
-        document.getElementById("settingsStatus").textContent = "Changes saved.";
+      try {
+        saveSites(sites);
+        closeSiteDialog();
+        showDashboardView("sites");
+      } catch {
+        document.getElementById("siteFormStatus").textContent = "Could not save this site in your browser.";
       }
     });
 
