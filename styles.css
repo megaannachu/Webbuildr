@@ -31,6 +31,92 @@ body.dashboard-mode {
   min-height: 100vh;
 }
 
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #caeaf6 0%, #ffd5ed 45%, #ebbff3 100%);
+}
+
+.loading-screen[hidden] {
+  display: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.loading-cubes {
+  --uib-size: 45px;
+  --uib-color: #f567bd;
+  --uib-speed: 1.75s;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: var(--uib-size);
+  height: calc(var(--uib-size) * 0.6);
+  padding-bottom: 20%;
+}
+
+.loading-cube {
+  flex-shrink: 0;
+  width: calc(var(--uib-size) * 0.2);
+  height: calc(var(--uib-size) * 0.2);
+  animation: loading-cube-jump var(--uib-speed) ease-in-out infinite;
+}
+
+.loading-cube__inner {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 25%;
+  background-color: var(--uib-color);
+  transform-origin: center bottom;
+  animation: loading-cube-morph var(--uib-speed) ease-in-out infinite;
+  transition: background-color 0.3s ease;
+}
+
+.loading-cube:nth-child(2),
+.loading-cube:nth-child(2) .loading-cube__inner {
+  animation-delay: calc(var(--uib-speed) * -0.36);
+}
+
+.loading-cube:nth-child(3),
+.loading-cube:nth-child(3) .loading-cube__inner {
+  animation-delay: calc(var(--uib-speed) * -0.2);
+}
+
+@keyframes loading-cube-jump {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(0); animation-timing-function: ease-out; }
+  50% { transform: translateY(-200%); animation-timing-function: ease-in; }
+  75% { transform: translateY(0); animation-timing-function: ease-in; }
+}
+
+@keyframes loading-cube-morph {
+  0%, 10%, 40%, 70%, 85%, 100% { transform: scaleY(1); }
+  20%, 25% { transform: scaleY(0.6) scaleX(1.3); animation-timing-function: ease-in-out; }
+  30% { transform: scaleY(1.15) scaleX(0.9); animation-timing-function: ease-in-out; }
+  75% { transform: scaleY(0.8) scaleX(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-cube,
+  .loading-cube__inner {
+    animation: none;
+  }
+}
+
 .dashboard[hidden],
 .container[hidden] {
   display: none !important;
