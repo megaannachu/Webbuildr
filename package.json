@@ -1,0 +1,30 @@
+{
+  "name": "webbuildr",
+  "version": "1.0.0",
+  "description": "Webbuildr is an easy‑to‑use website‑building platform designed for anyone who wants to create a clean, professional, or personal website without learning how to code.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort --open",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/megaannachu/Webbuidr.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/megaannachu/Webbuidr/issues"
+  },
+  "homepage": "https://github.com/megaannachu/Webbuidr#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
+  },
+  "devDependencies": {
+    "vite": "^6.4.5"
+  }
+}
