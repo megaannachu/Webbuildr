@@ -697,7 +697,7 @@
             <div class="preview-content"><i></i><i></i><i></i></div>
           </div>
           <div class="site-information">
-            <div><h3>${escapeHtml(site.title)}</h3><p>Saved in your workspace</p></div>
+            <div><h3>${escapeHtml(site.title)}</h3></div>
             <div class="site-buttons">
               <button class="button-secondary" type="button" data-action="edit-site" data-site-id="${escapeHtml(site.id)}">Edit</button>
               <button class="button-primary" type="button" data-action="preview-site" data-site-id="${escapeHtml(site.id)}">Preview</button>
@@ -707,14 +707,14 @@
     }
 
     function emptySites() {
-      return `<div class="empty-state"><span aria-hidden="true">＋</span><h3>Your first site starts here</h3><p>Create a site or pick a template to get your workspace going.</p><button class="button-primary" type="button" data-view="templates">Browse templates</button></div>`;
+      return `<div class="empty-state"><span aria-hidden="true">＋</span><h3>Your first site starts here</h3><button class="button-primary" type="button" data-view="templates">Browse templates</button></div>`;
     }
 
     function templateCards() {
       return TEMPLATE_OPTIONS.map(template => `
         <article class="template-card ${template.color}">
           <div class="template-art" aria-hidden="true"><span></span><span></span><span></span></div>
-          <div class="template-card-copy"><h3>${template.name}</h3><p>${template.description}</p>
+          <div class="template-card-copy"><h3>${template.name}</h3>
             <button class="button-primary" type="button" data-action="use-template" data-template="${template.id}">Use template</button>
           </div>
         </article>`).join("");
@@ -733,14 +733,14 @@
       const sites = getSites().sort((first, second) => second.updatedAt - first.updatedAt);
 
       if (view === "sites") {
-        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">YOUR WORK</p><h2>My Sites</h2><p>Everything you have started, in one place.</p></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></div><div class="site-grid">${sites.length ? sites.map(siteCard).join("") : emptySites()}</div>`;
+        content.innerHTML = `<div class="section-heading"><div><h2>My Sites</h2></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></div><div class="site-grid">${sites.length ? sites.map(siteCard).join("") : emptySites()}</div>`;
       } else if (view === "templates") {
-        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">A HEAD START</p><h2>Choose a template</h2><p>Pick a starting point. You can rename it anytime.</p></div></div><div class="template-grid">${templateCards()}</div>`;
+        content.innerHTML = `<div class="section-heading"><div><h2>Choose a template</h2></div></div><div class="template-grid">${templateCards()}</div>`;
       } else if (view === "github") {
         content.innerHTML = `
           <section class="github-browser">
             <header class="github-browser-toolbar">
-              <div><h2>GitHub repositories</h2><p class="github-browser-note">Browse files and copy code into your project. WebBuildr will not change your repositories.</p></div>
+              <div><h2>GitHub repositories</h2></div>
               <button class="button-secondary" type="button" data-github-action="refresh">Refresh</button>
             </header>
             <button class="button-primary" id="githubConnectButton" type="button" data-github-action="connect">Connect GitHub</button>
@@ -764,15 +764,24 @@
           </section>`;
         renderGithubBrowser();
       } else if (view === "resources") {
-        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">LEARN AND BUILD</p><h2>Resources</h2><p>Simple guides to help you learn how websites work.</p></div></div><div class="resource-list"><a href="https://developer.mozilla.org/en-US/docs/Learn/HTML" target="_blank" rel="noreferrer"><span class="resource-mark">01</span><span><strong>HTML basics</strong><small>Learn how to add headings, links, images, and other page content.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/CSS" target="_blank" rel="noreferrer"><span class="resource-mark">02</span><span><strong>CSS basics</strong><small>Learn how to change the look and layout of a page.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript" target="_blank" rel="noreferrer"><span class="resource-mark">03</span><span><strong>JavaScript basics</strong><small>Learn how to make a website respond to people.</small></span><span aria-hidden="true">↗</span></a></div>`;
+        content.innerHTML = `<div class="section-heading"><div><h2>Resources</h2></div></div><div class="resource-list"><a href="https://developer.mozilla.org/en-US/docs/Learn/HTML" target="_blank" rel="noreferrer"><span class="resource-mark">01</span><span><strong>HTML basics</strong></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/CSS" target="_blank" rel="noreferrer"><span class="resource-mark">02</span><span><strong>CSS basics</strong></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript" target="_blank" rel="noreferrer"><span class="resource-mark">03</span><span><strong>JavaScript basics</strong></span><span aria-hidden="true">↗</span></a></div>`;
       } else if (view === "settings") {
-        content.innerHTML = "";
+        content.innerHTML = `
+          <section class="dashboard-section">
+            <div class="section-heading">
+              <div>
+                <h2>Settings</h2>
+              </div>
+            </div>
+            <button class="button-danger" id="deleteAccountButton" type="button" data-action="delete-account">Delete account</button>
+            <p class="settings-status" id="deleteAccountStatus" role="status"></p>
+          </section>`;
       } else {
         const latestSite = sites[0];
         content.innerHTML = `
-          <section class="create-banner"><div><p class="eyebrow">A FRESH START</p><h2>Create something new</h2><p>Start building your next website.</p></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></section>
-          <section class="dashboard-section"><div class="section-heading compact"><div><p class="eyebrow">RECENTLY UPDATED</p><h2>Latest site</h2></div><button class="text-button" type="button" data-view="sites">View all <span aria-hidden="true">→</span></button></div>${latestSite ? siteCard(latestSite) : emptySites()}</section>
-          <section class="dashboard-section"><div class="section-heading compact"><div><p class="eyebrow">GET INSPIRED</p><h2>Start with a template</h2></div><button class="text-button" type="button" data-view="templates">Browse all <span aria-hidden="true">→</span></button></div><div class="template-grid home-templates">${templateCards()}</div></section>`;
+          <section class="create-banner"><div><h2>Create something new</h2></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></section>
+          <section class="dashboard-section"><div class="section-heading compact"><div><h2>Latest site</h2></div><button class="text-button" type="button" data-view="sites">View all <span aria-hidden="true">→</span></button></div>${latestSite ? siteCard(latestSite) : emptySites()}</section>
+          <section class="dashboard-section"><div class="section-heading compact"><div><h2>Start with a template</h2></div><button class="text-button" type="button" data-view="templates">Browse all <span aria-hidden="true">→</span></button></div><div class="template-grid home-templates">${templateCards()}</div></section>`;
       }
     }
 
@@ -906,6 +915,7 @@
       const actionButton = event.target.closest("[data-action]");
       if (!actionButton) return;
       if (actionButton.dataset.action === "create-site") openSiteDialog();
+      if (actionButton.dataset.action === "delete-account") deleteAccount();
       if (actionButton.dataset.action === "use-template") openSiteDialog(actionButton.dataset.template);
       if (actionButton.dataset.action === "edit-site") editSite(actionButton.dataset.siteId);
       if (actionButton.dataset.action === "preview-site") previewSite(actionButton.dataset.siteId);
@@ -1138,6 +1148,35 @@
         updateSignedInDisplay();
       } catch (error) {
         setAppStatus(`Could not sign out: ${error.message}`);
+      }
+    }
+
+    async function deleteAccount() {
+      const button = document.getElementById("deleteAccountButton");
+      const status = document.getElementById("deleteAccountStatus");
+      button.disabled = true;
+      status.textContent = "Deleting your account...";
+
+      try {
+        if (!supabase) throw new Error("Supabase is not configured.");
+
+        const { error } = await supabase.functions.invoke("delete-acc");
+        if (error) throw error;
+
+        const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
+        currentUser = null;
+        currentSites = [];
+        githubAccessToken = null;
+        updateSignedInDisplay();
+
+        if (signOutError) {
+          setAppStatus(`Your account was deleted, but sign-out failed: ${signOutError.message}`);
+        } else {
+          setAppStatus("");
+        }
+      } catch (error) {
+        status.textContent = `Could not delete your account: ${error.message}`;
+        button.disabled = false;
       }
     }
 
