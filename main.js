@@ -1154,6 +1154,7 @@
     async function deleteAccount() {
       const button = document.getElementById("deleteAccountButton");
       const status = document.getElementById("deleteAccountStatus");
+      if (!window.confirm("Delete your account and saved sites? This cannot be undone.")) return;
       button.disabled = true;
       status.textContent = "Deleting your account...";
 

@@ -57,6 +57,21 @@ npm.cmd run dev
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser.
 
+### 6. Enable account deletion
+
+The Settings page calls the `delete-acc` Edge Function when someone confirms account deletion. In PowerShell, go to the `WebBuildr` project folder and install the Supabase CLI as a project dependency:
+
+```powershell
+npm.cmd install --save-dev supabase
+npx.cmd supabase login
+npx.cmd supabase link --project-ref htygbtndxvpgcripgoej
+npx.cmd supabase functions deploy delete-acc
+```
+
+If you use a different Supabase project, replace `htygbtndxvpgcripgoej` with that project's reference ID. The `npx.cmd` commands use the locally installed CLI and do not require a global `supabase` command.
+
+The function validates the caller's access token and deletes only that signed-in user's account. It uses `SUPABASE_SERVICE_ROLE_KEY` on the server; never put a service-role key in `.env.local` or browser code. Supabase provides this secret to Edge Functions.
+
 ## Notes
 
 - Supabase controls who can read and change saved profiles and websites.
