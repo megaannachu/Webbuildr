@@ -1,17 +1,64 @@
-Webbuildr is an easy-to-use website-building platform designed for anyone who wants to create a clean, professional, or personal website without learning how to code.
+# WebBuildr
 
-## Run locally.
+WebBuildr helps you make simple websites. You can start with a template, add page blocks, and save your work to your account.
 
-1. Install Node.js, then run `npm.cmd install` in this folder (in Windows PowerShell).
-2. The local `.env.local` file contains this project's Supabase URL and publishable key. Keep it local; never add a secret/service-role key.
-3. In the Supabase dashboard, open the **SQL Editor** and run `supabase-setup.sql`. If you already ran setup or see a `public.profiles` / `public.sites` schema-cache error, run `supabase-github-migration.sql`; it safely creates missing tables, updates GitHub profile creation, grants the required roles, backfills missing profiles, and asks the API to reload its schema.
-4. In **Authentication → URL Configuration**, add `http://127.0.0.1:5173` to the allowed redirect URLs.
-5. In **Authentication → Sign In / Providers → GitHub**, enable GitHub and enter the OAuth app’s Client ID and Client secret. In the GitHub OAuth app, set its callback URL to the Supabase callback URL shown by the provider settings.
-6. Enable **Allow manual linking** in Supabase Auth settings if you want to connect GitHub from an existing email account. Repository browsing requests GitHub's broad `repo` OAuth scope so it can read private repositories; WebBuildr only reads repository contents and does not push changes.
-7. Run `npm.cmd run dev` and open `http://127.0.0.1:5173`.
+## Run WebBuildr on your computer
 
-The browser app uses the Supabase publishable key, which is intended to be public. Never put a Supabase secret or service-role key in `.env.local` or browser code. Access to profiles and saved sites is restricted with row-level security.
+### 1. Install the tools
 
-The GitHub dashboard tab lists repositories, lets you browse text files, and copies their contents to your clipboard. It does not insert or execute repository code in a WebBuildr site. Private repository browsing requests GitHub's broad `repo` OAuth scope.
+Install [Node.js](https://nodejs.org/). Open PowerShell in the `WebBuildr` folder and install the project packages:
 
-Sign-up uses Supabase Auth. If email confirmation is enabled in the Supabase project, new users must confirm their email before signing in. Accounts and sites previously stored only in browser local storage are not automatically migrated.
+```powershell
+npm.cmd install
+```
+
+### 2. Add your Supabase settings
+
+Copy `.env.example` and name the copy `.env.local`. In PowerShell, you can do this with:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Add your Supabase project URL and publishable key to that file.
+
+The publishable key is meant to be used in a browser. Never add a secret key or service-role key to `.env.local` or to the website code.
+
+### 3. Set up the database
+
+In your Supabase project, open **SQL Editor** and run `supabase-setup.sql`.
+
+If you already ran the setup, or the app says it cannot find `public.profiles` or `public.sites`, run `supabase-github-migration.sql` instead. It creates missing tables, updates GitHub sign-in, and fixes the database's table list.
+
+### 4. Set up sign-in
+
+In Supabase, open **Authentication → URL Configuration**. Add this address to the allowed redirect URLs:
+
+```text
+http://127.0.0.1:5173
+```
+
+To let people sign in with GitHub:
+
+1. Open **Authentication → Sign In / Providers → GitHub** and turn GitHub on.
+2. Add your GitHub app's Client ID and Client secret.
+3. In your GitHub app settings, use the callback address shown in the Supabase provider settings.
+4. Turn on **Allow manual linking** in Supabase if people should be able to connect GitHub to an existing account.
+
+WebBuildr asks GitHub for the `repo` permission so it can show private repositories. It only reads files; it does not change or upload anything to your repositories.
+
+### 5. Start the website
+
+Run this command in PowerShell:
+
+```powershell
+npm.cmd run dev
+```
+
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser.
+
+## Notes
+
+- Supabase controls who can read and change saved profiles and websites.
+- If email confirmation is turned on in Supabase, new users must confirm their email before signing in.
+- Websites and accounts saved only in the browser are not copied to Supabase automatically.

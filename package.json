@@ -1,7 +1,7 @@
 {
   "name": "webbuildr",
   "version": "1.0.0",
-  "description": "Webbuildr is an easy‑to‑use website‑building platform designed for anyone who wants to create a clean, professional, or personal website without learning how to code.",
+  "description": "A simple tool for building websites without code.",
   "main": "index.js",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort --open",

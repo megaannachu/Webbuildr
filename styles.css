@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&display=swap");
 
+/* Set the default font and sizing for every page element. */
 * {
   box-sizing: border-box;
   font-family: "DynaPuff", system-ui;
@@ -160,6 +161,8 @@ button {
 }
 
 button:hover { background: rgb(233, 78, 170); transform: translateY(-2px); }
+
+/* Landing page and account forms */
 .container { position: relative; width: 100%; min-height: 100vh; padding: 90px 30px 45px; display: flex; flex-direction: column; justify-content: center; text-align: center; }
 .top-account-buttons { position: absolute; top: 0; right: 0; left: 0; min-height: 76px; padding: 12px 24px; display: flex; justify-content: flex-end; align-items: center; gap: 12px; background: white; }
 .top-logo { display: block; width: 150px; max-width: 35%; height: auto; margin-right: auto; }
@@ -209,6 +212,7 @@ button:hover { background: rgb(233, 78, 170); transform: translateY(-2px); }
 .success { color: #2c8c4b; }
 .requirements { margin: 8px 0 15px; text-align: left; color: #777; font-size: 13px; line-height: 1.5; }
 
+/* GitHub repository and file browser */
 .github-browser { display: grid; gap: 20px; }
 .github-browser-toolbar,
 .github-file-header,
@@ -246,6 +250,7 @@ button:hover { background: rgb(233, 78, 170); transform: translateY(-2px); }
   background: #f4f7fb;
 }
 
+/* Dashboard pages, site cards, templates, and resources */
 .dashboard-sidebar {
   width: 270px;
   min-height: 100vh;
@@ -629,6 +634,7 @@ button:hover { background: rgb(233, 78, 170); transform: translateY(-2px); }
   font-size: 18px;
 }
 
+/* User settings and dialogs */
 .settings-form {
   display: grid;
   gap: 16px;
@@ -719,6 +725,7 @@ button:hover { background: rgb(233, 78, 170); transform: translateY(-2px); }
   margin-top: 8px;
 }
 
+/* Website editor */
 .builder-editor {
   min-height: calc(100vh - 56px);
   overflow: hidden;

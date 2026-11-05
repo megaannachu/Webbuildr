@@ -1,5 +1,6 @@
 ﻿import { createClient } from '@supabase/supabase-js';
 
+    // Keep the app's shared data in one place.
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const supabase = supabaseUrl && supabasePublishableKey
@@ -31,17 +32,50 @@
     let pointerDragAfterTarget = false;
     let builderSaveTimer = 0;
 
-    function show(id) { document.getElementById(id).classList.add("active"); }
-    function hide(id) { document.getElementById(id).classList.remove("active"); }
-    function openSignIn() { show("signinOverlay"); clearMessage("signinMessage"); }
-    function closeSignIn() { hide("signinOverlay"); }
-    function openCreateAccount() { show("createAccountOverlay"); clearMessage("createMessage"); }
-    function closeCreateAccount() { hide("createAccountOverlay"); }
-    function switchToCreateAccount() { closeSignIn(); openCreateAccount(); }
-    function switchToSignIn() { closeCreateAccount(); openSignIn(); }
+    // Show or hide the sign-in and create-account forms.
+    function show(id) {
+      document.getElementById(id).classList.add("active");
+    }
 
-    function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
-    function isValidUsername(username) { return /^[A-Za-z0-9_]{3,20}$/.test(username); }
+    function hide(id) {
+      document.getElementById(id).classList.remove("active");
+    }
+
+    function openSignIn() {
+      show("signinOverlay");
+      clearMessage("signinMessage");
+    }
+
+    function closeSignIn() {
+      hide("signinOverlay");
+    }
+
+    function openCreateAccount() {
+      show("createAccountOverlay");
+      clearMessage("createMessage");
+    }
+
+    function closeCreateAccount() {
+      hide("createAccountOverlay");
+    }
+
+    function switchToCreateAccount() {
+      closeSignIn();
+      openCreateAccount();
+    }
+
+    function switchToSignIn() {
+      closeCreateAccount();
+      openSignIn();
+    }
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function isValidUsername(username) {
+      return /^[A-Za-z0-9_]{3,20}$/.test(username);
+    }
 
     function setMessage(id, text, type) {
       const message = document.getElementById(id);
@@ -49,7 +83,9 @@
       message.className = "account-message " + type;
     }
 
-    function clearMessage(id) { setMessage(id, "", ""); }
+    function clearMessage(id) {
+      setMessage(id, "", "");
+    }
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, character => ({
@@ -78,6 +114,7 @@
       status.hidden = !message;
     }
 
+    // Sign in with GitHub or connect a GitHub account.
     async function signInWithGitHub(messageId = "signinMessage") {
       if (!supabase) {
         setMessage(messageId, "Supabase is not configured.", "error");
@@ -147,17 +184,38 @@
       const container = document.getElementById("githubRepositoryList");
       if (!container) return;
       const search = document.getElementById("githubRepositorySearch").value.trim().toLowerCase();
-      const matching = githubRepositories.filter(repository =>
-        repository.full_name.toLowerCase().includes(search) ||
-        (repository.description || "").toLowerCase().includes(search)
-      );
-      container.innerHTML = matching.length
-        ? matching.map(repository => `
-          <button class="github-repository" type="button" data-github-repository="${escapeHtml(repository.full_name)}">
-            <span class="github-repository-name">${escapeHtml(repository.full_name)}</span>
-            <span class="github-repository-meta">${repository.private ? "Private" : "Public"} · ${escapeHtml(repository.default_branch)}</span>
-          </button>`).join("")
-        : '<p class="github-browser-status">No repositories match that search.</p>';
+      container.replaceChildren();
+
+      // Check each repository and add the ones that match the search.
+      for (const repository of githubRepositories) {
+        const name = repository.full_name.toLowerCase();
+        const description = (repository.description || "").toLowerCase();
+        if (!name.includes(search) && !description.includes(search)) continue;
+
+        const button = document.createElement("button");
+        button.className = "github-repository";
+        button.type = "button";
+        button.dataset.githubRepository = repository.full_name;
+
+        const nameText = document.createElement("span");
+        nameText.className = "github-repository-name";
+        nameText.textContent = repository.full_name;
+
+        const details = document.createElement("span");
+        details.className = "github-repository-meta";
+        details.textContent = `${repository.private ? "Private" : "Public"} · ${repository.default_branch}`;
+
+        button.append(nameText, details);
+        container.append(button);
+      }
+
+      if (!container.childElementCount) {
+        const emptyMessage = document.createElement("p");
+        emptyMessage.className = "github-browser-status";
+        emptyMessage.textContent = "No repositories match that search.";
+        container.append(emptyMessage);
+      }
+
       document.getElementById("githubLoadMore").hidden = githubRepositories.length < githubRepositoryPage * 100;
     }
 
@@ -223,7 +281,7 @@
           if (file.type === "file") {
             const size = document.createElement("span");
             size.className = "github-file-meta";
-            size.textContent = `${file.size} bytes`;
+            size.textContent = `File size: ${file.size} bytes`;
             button.append(size);
           }
           list.append(button);
@@ -290,9 +348,14 @@
       else status.textContent = "Connect GitHub to browse private and public repositories.";
     }
 
-    function getSignedInUser() { return currentUser; }
+    // Load and save the user's websites.
+    function getSignedInUser() {
+      return currentUser;
+    }
 
-    function getSites() { return currentSites; }
+    function getSites() {
+      return currentSites;
+    }
 
     async function saveSites(sites) {
       const user = getSignedInUser();
@@ -312,8 +375,11 @@
       currentSites = sites;
     }
 
+    // Create the data used by the website editor.
     function createId() {
       if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+
+      // Use random bytes when the browser does not support randomUUID().
       const bytes = window.crypto.getRandomValues(new Uint8Array(16));
       bytes[6] = (bytes[6] & 0x0f) | 0x40;
       bytes[8] = (bytes[8] & 0x3f) | 0x80;
@@ -323,10 +389,10 @@
 
     function makeBlock(type, content = {}) {
       const defaults = {
-        heading: { text: "Placeholder text" },
-        text: { text: "Placeholder text" },
+        heading: { text: "Add your title here" },
+        text: { text: "Add some text here" },
         image: { src: "", alt: "" },
-        button: { text: "Placeholder text", href: "#" },
+        button: { text: "Learn more", href: "#" },
         divider: {}
       };
       return {
@@ -338,16 +404,22 @@
     }
 
     function starterBlocks(template) {
-      if (template === "portfolio") return [
-        makeBlock("heading", { text: "Placeholder text" }),
-        makeBlock("text", { text: "Placeholder text" }),
-        makeBlock("button", { text: "Placeholder text", href: "#" })
-      ];
-      if (template === "studio") return [
-        makeBlock("heading", { text: "Placeholder text" }),
-        makeBlock("text", { text: "Placeholder text" }),
-        makeBlock("button", { text: "Placeholder text", href: "mailto:hello@example.com" })
-      ];
+      if (template === "portfolio") {
+        return [
+          makeBlock("heading", { text: "My Portfolio" }),
+          makeBlock("text", { text: "Add a short introduction about yourself." }),
+          makeBlock("button", { text: "See my work", href: "#" })
+        ];
+      }
+
+      if (template === "studio") {
+        return [
+          makeBlock("heading", { text: "Welcome to my studio" }),
+          makeBlock("text", { text: "Tell visitors what your business does." }),
+          makeBlock("button", { text: "Get in touch", href: "mailto:hello@example.com" })
+        ];
+      }
+
       return [];
     }
 
@@ -366,7 +438,13 @@
 
     function getSiteBlocks(site) {
       ensureSitePages(site);
-      const page = site.pages.find(item => item.id === activeBuilderPageId) || site.pages[0];
+      let page = site.pages[0];
+      for (const sitePage of site.pages) {
+        if (sitePage.id === activeBuilderPageId) {
+          page = sitePage;
+          break;
+        }
+      }
       activeBuilderPageId = page.id;
       return page.blocks;
     }
@@ -383,11 +461,17 @@
     }
 
     function blockTone(block) {
-      return BLOCK_TONES.includes(block.style?.tone) ? block.style.tone : "ink";
+      const tone = block.style?.tone;
+      if (BLOCK_TONES.includes(tone)) return tone;
+      return "ink";
     }
 
     function blockAlignment(block) {
-      return ["left", "center", "right"].includes(block.style?.align) ? block.style.align : "left";
+      const alignment = block.style?.align;
+      if (alignment === "left" || alignment === "center" || alignment === "right") {
+        return alignment;
+      }
+      return "left";
     }
 
     function safeWebAddress(value) {
@@ -439,7 +523,10 @@
       if (!site) return closeBuilder();
       const blocks = getSiteBlocks(site);
       const canvas = document.getElementById("builderCanvas");
-      canvas.replaceChildren(...blocks.map(makeCanvasBlock));
+      canvas.replaceChildren();
+      for (const block of blocks) {
+        canvas.append(makeCanvasBlock(block));
+      }
       canvas.style.backgroundColor = DESIGN_PRESETS.backgrounds[site.design.background];
       canvas.style.fontFamily = DESIGN_PRESETS.fonts[site.design.font];
       document.getElementById("builderEmpty").hidden = blocks.length > 0;
@@ -601,6 +688,7 @@
       scheduleBuilderSave();
     }
 
+    // Show the dashboard pages and their website cards.
     function siteCard(site) {
       return `
         <article class="site-card">
@@ -676,7 +764,7 @@
           </section>`;
         renderGithubBrowser();
       } else if (view === "resources") {
-        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">LEARN AND BUILD</p><h2>Resources</h2><p>Helpful references for making the web your own.</p></div></div><div class="resource-list"><a href="https://developer.mozilla.org/en-US/docs/Learn/HTML" target="_blank" rel="noreferrer"><span class="resource-mark">01</span><span><strong>HTML basics</strong><small>Structure pages with headings, links, images, and more.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/CSS" target="_blank" rel="noreferrer"><span class="resource-mark">02</span><span><strong>CSS basics</strong><small>Style and arrange the content on your pages.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript" target="_blank" rel="noreferrer"><span class="resource-mark">03</span><span><strong>JavaScript basics</strong><small>Add interaction and behavior to a website.</small></span><span aria-hidden="true">↗</span></a></div>`;
+        content.innerHTML = `<div class="section-heading"><div><p class="eyebrow">LEARN AND BUILD</p><h2>Resources</h2><p>Simple guides to help you learn how websites work.</p></div></div><div class="resource-list"><a href="https://developer.mozilla.org/en-US/docs/Learn/HTML" target="_blank" rel="noreferrer"><span class="resource-mark">01</span><span><strong>HTML basics</strong><small>Learn how to add headings, links, images, and other page content.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/CSS" target="_blank" rel="noreferrer"><span class="resource-mark">02</span><span><strong>CSS basics</strong><small>Learn how to change the look and layout of a page.</small></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript" target="_blank" rel="noreferrer"><span class="resource-mark">03</span><span><strong>JavaScript basics</strong><small>Learn how to make a website respond to people.</small></span><span aria-hidden="true">↗</span></a></div>`;
       } else if (view === "settings") {
         content.innerHTML = "";
       } else {
@@ -709,6 +797,7 @@
       openBuilder(siteId);
     }
 
+    // Turn the saved blocks into a website that can be previewed or downloaded.
     function renderBlockHtml(block) {
       const alignment = blockAlignment(block);
       const tone = blockTone(block);
@@ -761,6 +850,7 @@
       window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     }
 
+    // Handle clicks on buttons that are added to the page later.
     document.addEventListener("click", event => {
       const viewButton = event.target.closest("[data-view]");
       if (viewButton) {
@@ -978,6 +1068,7 @@
       }
     });
 
+    // Create accounts, sign in, and load saved account data.
     async function createAccount() {
       const username = document.getElementById("createUsername").value.trim();
       const email = document.getElementById("createEmail").value.trim();
@@ -1107,7 +1198,7 @@
 
     async function initializeApplication() {
       try {
-        if (!supabase) throw new Error("Supabase settings are missing. Copy .env.example to .env.local, add your project settings, then restart Vite.");
+        if (!supabase) throw new Error("Supabase settings are missing. Copy .env.example to .env.local, add your project URL and publishable key, then restart the app.");
         supabase.auth.onAuthStateChange((_event, session) => {
           githubAccessToken = session?.provider_token || null;
           window.setTimeout(() => {

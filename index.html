@@ -17,7 +17,7 @@
     </div>
   </div>
   <p class="app-status" id="appStatus" role="alert" hidden></p>
-  <!-- Main page content: logo, creators, and account actions -->
+  <!-- The first screen shows the logo, sign-in buttons, and ways to build. -->
   <main class="container" id="landingPage">
     <div class="top-account-buttons" aria-label="Account actions">
       <img class="top-logo" src="https://file.garden/aKtEcZD-hThC8Gxk/webbuildr%20lowercase.png" alt="Web Buildr logo">
@@ -35,7 +35,7 @@
     </div>
 
     <section class="builder-choices" aria-labelledby="builderChoicesTitle">
-      <h1 id="builderChoicesTitle">Choose how you build</h1>
+      <h1 id="builderChoicesTitle">Choose how you want to build</h1>
       <div class="builder-choice-grid">
         <article class="builder-choice">
           <div class="builder-icon visual-icon" aria-hidden="true">
@@ -48,7 +48,7 @@
             </svg>
           </div>
           <h2>Visual Builder</h2>
-          <p>Drag and drop, no coding required</p>
+          <p>Add and move page parts. No code needed.</p>
         </article>
         <article class="builder-choice">
           <div class="builder-icon code-icon" aria-hidden="true">
@@ -56,8 +56,8 @@
               <path d="m17 14-10 10 10 10M31 14l10 10-10 10M28 10l-8 28" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
-          <h2>HTML &amp; CSS</h2>
-          <p>Build from scratch, coding required</p>
+          <h2>Write HTML and CSS</h2>
+          <p>Build a page by writing code.</p>
         </article>
         <article class="builder-choice">
           <div class="builder-icon hybrid-icon" aria-hidden="true">
@@ -65,8 +65,8 @@
               <path d="M10 22a14 14 0 0 1 24-9l3 3M37 10v6h-6M38 26a14 14 0 0 1-24 9l-3-3M11 38v-6h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
-          <h2>Hybrid</h2>
-          <p>Use both the visual &amp; code builder</p>
+          <h2>Use both</h2>
+          <p>Mix the visual builder with your own code.</p>
         </article>
       </div>
     </section>
@@ -96,7 +96,7 @@
       <header class="dashboard-topbar">
         <div>
           <h1 id="dashboardWelcome">Welcome back!</h1>
-          <p class="dashboard-subtitle">What would you like to build today?</p>
+          <p class="dashboard-subtitle">What would you like to make today?</p>
         </div>
         <div class="dashboard-user">
           <span class="profile-circle" id="dashboardAvatar" aria-hidden="true">W</span>
@@ -127,13 +127,13 @@
             </section>
           </aside>
           <section class="builder-stage" aria-label="Page canvas">
-            <div class="builder-stage-heading"><span id="builderCurrentPageTitle">HOME</span><span>Drag blocks to reorder</span></div>
+            <div class="builder-stage-heading"><span id="builderCurrentPageTitle">HOME</span><span>Drag blocks to move them</span></div>
             <div class="builder-canvas" id="builderCanvas"></div>
-            <p class="builder-empty" id="builderEmpty" hidden>Your page is blank. Add a block to get started.</p>
+            <p class="builder-empty" id="builderEmpty" hidden>This page is empty. Add a block to begin.</p>
           </section>
           <aside class="builder-inspector" aria-label="Selected block settings">
             <h2>Block settings</h2>
-            <div id="builderInspector"><p class="inspector-empty">Select a block on the page to edit it.</p></div>
+            <div id="builderInspector"><p class="inspector-empty">Choose a block to change it.</p></div>
           </aside>
         </div>
       </section>
