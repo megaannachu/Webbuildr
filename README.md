@@ -45,7 +45,7 @@ To let people sign in with GitHub:
 3. In your GitHub app settings, use the callback address shown in the Supabase provider settings.
 4. Turn on **Allow manual linking** in Supabase if people should be able to connect GitHub to an existing account.
 
-WebBuildr asks GitHub for the `repo` permission so it can show private repositories. It only reads files; it does not change or upload anything to your repositories.
+GitHub sign-in is only used to authenticate your WebBuildr account; WebBuildr does not access your repositories.
 
 ### 5. Start the website
 

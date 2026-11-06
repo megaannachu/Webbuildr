@@ -8,10 +8,6 @@
       : null;
     let currentUser = null;
     let currentSites = [];
-    let githubAccessToken = null;
-    let githubRepositories = [];
-    let githubRepositoryPage = 1;
-    let githubCurrentRepository = null;
     const TEMPLATE_OPTIONS = [
       { id: "blank", name: "Blank Canvas", description: "A clean page for your own ideas.", color: "mint" },
       { id: "portfolio", name: "Portfolio", description: "Showcase your work and experience.", color: "pink" },
@@ -114,7 +110,7 @@
       status.hidden = !message;
     }
 
-    // Sign in with GitHub or connect a GitHub account.
+    // Sign in with GitHub.
     async function signInWithGitHub(messageId = "signinMessage") {
       if (!supabase) {
         setMessage(messageId, "Supabase is not configured.", "error");
@@ -124,7 +120,6 @@
         const { error } = await supabase.auth.signInWithOAuth({
           provider: "github",
           options: {
-            scopes: "repo",
             redirectTo: window.location.origin
           }
         });
@@ -132,220 +127,6 @@
       } catch (error) {
         setMessage(messageId, error.message || "Could not connect to GitHub.", "error");
       }
-    }
-
-    async function connectGitHub() {
-      if (!supabase || !currentUser) {
-        setAppStatus("Sign in before connecting GitHub.");
-        return;
-      }
-      try {
-        if (currentUser.hasGithubIdentity) {
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: "github",
-            options: {
-              scopes: "repo",
-              redirectTo: window.location.origin
-            }
-          });
-          if (error) throw error;
-          return;
-        }
-        const { error } = await supabase.auth.linkIdentity({
-          provider: "github",
-          options: {
-            scopes: "repo",
-            redirectTo: window.location.origin
-          }
-        });
-        if (error) throw error;
-      } catch (error) {
-        document.getElementById("githubBrowserStatus").textContent = error.message || "Could not connect to GitHub.";
-      }
-    }
-
-    async function githubApi(path) {
-      if (!githubAccessToken) throw new Error("Connect GitHub again to browse your repositories.");
-      const response = await fetch(`https://api.github.com${path}`, {
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: `Bearer ${githubAccessToken}`,
-          "X-GitHub-Api-Version": "2022-11-28"
-        }
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.message || `GitHub returned HTTP ${response.status}.`);
-      }
-      return payload;
-    }
-
-    function renderGithubRepositories() {
-      const container = document.getElementById("githubRepositoryList");
-      if (!container) return;
-      const search = document.getElementById("githubRepositorySearch").value.trim().toLowerCase();
-      container.replaceChildren();
-
-      // Check each repository and add the ones that match the search.
-      for (const repository of githubRepositories) {
-        const name = repository.full_name.toLowerCase();
-        const description = (repository.description || "").toLowerCase();
-        if (!name.includes(search) && !description.includes(search)) continue;
-
-        const button = document.createElement("button");
-        button.className = "github-repository";
-        button.type = "button";
-        button.dataset.githubRepository = repository.full_name;
-
-        const nameText = document.createElement("span");
-        nameText.className = "github-repository-name";
-        nameText.textContent = repository.full_name;
-
-        const details = document.createElement("span");
-        details.className = "github-repository-meta";
-        details.textContent = `${repository.private ? "Private" : "Public"} · ${repository.default_branch}`;
-
-        button.append(nameText, details);
-        container.append(button);
-      }
-
-      if (!container.childElementCount) {
-        const emptyMessage = document.createElement("p");
-        emptyMessage.className = "github-browser-status";
-        emptyMessage.textContent = "No repositories match that search.";
-        container.append(emptyMessage);
-      }
-
-      document.getElementById("githubLoadMore").hidden = githubRepositories.length < githubRepositoryPage * 100;
-    }
-
-    async function loadGithubRepositories(reset = true) {
-      const status = document.getElementById("githubBrowserStatus");
-      if (!status) return;
-      if (!githubAccessToken) {
-        status.textContent = "Connect GitHub to browse your repositories.";
-        document.getElementById("githubConnectButton").hidden = false;
-        return;
-      }
-      document.getElementById("githubConnectButton").hidden = true;
-      status.textContent = "Loading repositories...";
-      try {
-        if (reset) {
-          githubRepositories = [];
-          githubRepositoryPage = 1;
-        }
-        const page = await githubApi(`/user/repos?sort=updated&per_page=100&page=${githubRepositoryPage}&affiliation=owner,collaborator,organization_member`);
-        githubRepositories = githubRepositories.concat(page);
-        status.textContent = `${githubRepositories.length} repositories loaded.`;
-        renderGithubRepositories();
-      } catch (error) {
-        status.textContent = error.message;
-      }
-    }
-
-    async function openGithubRepository(fullName) {
-      const [owner, repository] = fullName.split("/");
-      if (!owner || !repository) return;
-      githubCurrentRepository = { owner, repository, fullName };
-      document.getElementById("githubSelectedRepository").textContent = fullName;
-      document.getElementById("githubFileBrowser").hidden = false;
-      document.getElementById("githubCodeView").hidden = true;
-      await loadGithubPath("");
-    }
-
-    async function loadGithubPath(path) {
-      const list = document.getElementById("githubFileList");
-      const status = document.getElementById("githubFileStatus");
-      if (!githubCurrentRepository || !list) return;
-      list.replaceChildren();
-      status.textContent = "Loading files...";
-      try {
-        const { owner, repository } = githubCurrentRepository;
-        const encodedPath = path.split("/").filter(Boolean).map(encodeURIComponent).join("/");
-        const entries = await githubApi(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/contents/${encodedPath}`);
-        const files = Array.isArray(entries) ? entries : [entries];
-        files.sort((first, second) => first.type === second.type
-          ? first.name.localeCompare(second.name)
-          : first.type === "dir" ? -1 : 1);
-        for (const file of files) {
-          if (file.type !== "dir" && file.type !== "file") continue;
-          const button = document.createElement("button");
-          button.className = "github-file";
-          button.type = "button";
-          button.dataset.githubPath = file.path;
-          button.dataset.githubType = file.type;
-          const name = document.createElement("span");
-          name.className = "github-repository-name";
-          name.textContent = `${file.type === "dir" ? "📁" : "📄"} ${file.name}`;
-          button.append(name);
-          if (file.type === "file") {
-            const size = document.createElement("span");
-            size.className = "github-file-meta";
-            size.textContent = `File size: ${file.size} bytes`;
-            button.append(size);
-          }
-          list.append(button);
-        }
-        const parentPath = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
-        if (path) {
-          const parent = document.createElement("button");
-          parent.className = "github-file";
-          parent.type = "button";
-          parent.dataset.githubPath = parentPath;
-          parent.dataset.githubType = "dir";
-          parent.textContent = "↑ Parent folder";
-          list.prepend(parent);
-        }
-        status.textContent = `${files.length} items · ${path || "/"}`;
-      } catch (error) {
-        status.textContent = error.message;
-      }
-    }
-
-    function decodeGithubFile(content) {
-      const binary = atob(content.replace(/\s/g, ""));
-      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-      return new TextDecoder().decode(bytes);
-    }
-
-    async function openGithubFile(path) {
-      if (!githubCurrentRepository) return;
-      const status = document.getElementById("githubFileStatus");
-      const codeView = document.getElementById("githubCodeView");
-      status.textContent = "Loading file...";
-      try {
-        const { owner, repository } = githubCurrentRepository;
-        const encodedPath = path.split("/").map(encodeURIComponent).join("/");
-        const file = await githubApi(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/contents/${encodedPath}`);
-        if (file.encoding !== "base64" || !file.content) {
-          throw new Error("This file is too large or cannot be displayed. Open it on GitHub instead.");
-        }
-        document.getElementById("githubCodePath").textContent = `${repository}/${path}`;
-        document.getElementById("githubCodeContent").textContent = decodeGithubFile(file.content);
-        document.getElementById("githubCodeLink").href = file.html_url;
-        codeView.hidden = false;
-        status.textContent = "";
-      } catch (error) {
-        status.textContent = error.message;
-      }
-    }
-
-    async function copyGithubCode() {
-      const code = document.getElementById("githubCodeContent").textContent;
-      try {
-        await navigator.clipboard.writeText(code);
-        document.getElementById("githubCopyStatus").textContent = "Copied. Paste it into your code editor.";
-      } catch (error) {
-        document.getElementById("githubCopyStatus").textContent = `Could not copy code: ${error.message}`;
-      }
-    }
-
-    function renderGithubBrowser() {
-      const status = document.getElementById("githubBrowserStatus");
-      if (!status) return;
-      document.getElementById("githubConnectButton").hidden = Boolean(githubAccessToken);
-      if (githubAccessToken) loadGithubRepositories();
-      else status.textContent = "Connect GitHub to browse private and public repositories.";
     }
 
     // Load and save the user's websites.
@@ -736,33 +517,6 @@
         content.innerHTML = `<div class="section-heading"><div><h2>My Sites</h2></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></div><div class="site-grid">${sites.length ? sites.map(siteCard).join("") : emptySites()}</div>`;
       } else if (view === "templates") {
         content.innerHTML = `<div class="section-heading"><div><h2>Choose a template</h2></div></div><div class="template-grid">${templateCards()}</div>`;
-      } else if (view === "github") {
-        content.innerHTML = `
-          <section class="github-browser">
-            <header class="github-browser-toolbar">
-              <div><h2>GitHub repositories</h2></div>
-              <button class="button-secondary" type="button" data-github-action="refresh">Refresh</button>
-            </header>
-            <button class="button-primary" id="githubConnectButton" type="button" data-github-action="connect">Connect GitHub</button>
-            <p class="github-browser-status" id="githubBrowserStatus" role="status"></p>
-            <input class="github-search" id="githubRepositorySearch" type="search" placeholder="Search repositories" aria-label="Search repositories">
-            <div class="github-repository-list" id="githubRepositoryList"></div>
-            <button class="button-secondary" id="githubLoadMore" type="button" data-github-action="load-more" hidden>Load more repositories</button>
-            <section class="github-file-browser" id="githubFileBrowser" hidden>
-              <header class="github-file-header"><h3 id="githubSelectedRepository"></h3><button class="button-secondary" type="button" data-github-action="close-repository">Close</button></header>
-              <p class="github-browser-status" id="githubFileStatus" role="status"></p>
-              <div class="github-file-list" id="githubFileList"></div>
-              <section class="github-code-view" id="githubCodeView" hidden>
-                <header class="github-code-header">
-                  <h3 id="githubCodePath"></h3>
-                  <div><a class="button-secondary" id="githubCodeLink" target="_blank" rel="noreferrer">Open on GitHub</a> <button class="button-primary" type="button" data-github-action="copy">Copy code</button></div>
-                </header>
-                <p class="github-browser-status" id="githubCopyStatus" role="status"></p>
-                <pre><code id="githubCodeContent"></code></pre>
-              </section>
-            </section>
-          </section>`;
-        renderGithubBrowser();
       } else if (view === "resources") {
         content.innerHTML = `<div class="section-heading"><div><h2>Resources</h2></div></div><div class="resource-list"><a href="https://developer.mozilla.org/en-US/docs/Learn/HTML" target="_blank" rel="noreferrer"><span class="resource-mark">01</span><span><strong>HTML basics</strong></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/CSS" target="_blank" rel="noreferrer"><span class="resource-mark">02</span><span><strong>CSS basics</strong></span><span aria-hidden="true">↗</span></a><a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript" target="_blank" rel="noreferrer"><span class="resource-mark">03</span><span><strong>JavaScript basics</strong></span><span aria-hidden="true">↗</span></a></div>`;
       } else if (view === "settings") {
@@ -867,33 +621,6 @@
         showDashboardView(viewButton.dataset.view);
         return;
       }
-      const repositoryButton = event.target.closest("[data-github-repository]");
-      if (repositoryButton) {
-        openGithubRepository(repositoryButton.dataset.githubRepository);
-        return;
-      }
-      const fileButton = event.target.closest("[data-github-path]");
-      if (fileButton) {
-        if (fileButton.dataset.githubType === "dir") loadGithubPath(fileButton.dataset.githubPath);
-        else openGithubFile(fileButton.dataset.githubPath);
-        return;
-      }
-      const githubAction = event.target.closest("[data-github-action]");
-      if (githubAction) {
-        const action = githubAction.dataset.githubAction;
-        if (action === "connect") connectGitHub();
-        if (action === "refresh") loadGithubRepositories();
-        if (action === "load-more") {
-          githubRepositoryPage += 1;
-          loadGithubRepositories(false);
-        }
-        if (action === "copy") copyGithubCode();
-        if (action === "close-repository") {
-          githubCurrentRepository = null;
-          document.getElementById("githubFileBrowser").hidden = true;
-        }
-        return;
-      }
       const builderTab = event.target.closest("[data-builder-tab]");
       if (builderTab) {
         activeBuilderTab = builderTab.dataset.builderTab;
@@ -930,10 +657,6 @@
       if (actionButton.dataset.action === "duplicate-block") duplicateSelectedBlock();
       if (actionButton.dataset.action === "delete-block") deleteSelectedBlock();
       if (actionButton.dataset.action === "close-site-dialog") closeSiteDialog();
-    });
-
-    document.addEventListener("input", event => {
-      if (event.target.id === "githubRepositorySearch") renderGithubRepositories();
     });
 
     document.getElementById("builderCanvas").addEventListener("click", event => {
@@ -1167,7 +890,6 @@
         const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
         currentUser = null;
         currentSites = [];
-        githubAccessToken = null;
         updateSignedInDisplay();
 
         if (signOutError) {
@@ -1212,7 +934,6 @@
         id: authUser.id,
         email: authUser.email,
         username: profile.username,
-        hasGithubIdentity: (authUser.identities || []).some(identity => identity.provider === "github")
       };
       currentSites = rows.map(row => ensureSitePages({
         ...row.site_data,
@@ -1240,23 +961,18 @@
       try {
         if (!supabase) throw new Error("Supabase settings are missing. Copy .env.example to .env.local, add your project URL and publishable key, then restart the app.");
         supabase.auth.onAuthStateChange((_event, session) => {
-          githubAccessToken = session?.provider_token || null;
           window.setTimeout(() => {
             if (!session) {
               currentUser = null;
               currentSites = [];
-              githubAccessToken = null;
               updateSignedInDisplay();
             } else if (currentUser?.id !== session.user.id) {
               loadSignedInUser(session.user).catch(error => setAppStatus(`Could not load your account: ${error.message}`));
-            } else if (document.querySelector('.sidebar-button[data-view="github"].active')) {
-              renderGithubBrowser();
             }
           }, 0);
         });
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
-        githubAccessToken = data.session?.provider_token || null;
         if (data.session) {
           await loadSignedInUser(data.session.user);
         } else {
