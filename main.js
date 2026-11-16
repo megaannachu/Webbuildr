@@ -15,9 +15,10 @@
       { id: "blank", name: "Blank Canvas", description: "A clean page for your own ideas." }
     ];
     const BLOCK_TONES = ["ink", "rose", "moss"];
+    const BUILDER_FONT_FAMILY = '"DynaPuff", system-ui';
     const DESIGN_PRESETS = {
       backgrounds: { paper: "#ffffff", mint: "#e9f6f0", blush: "#fff0f4", butter: "#fff8df" },
-      fonts: { serif: "Georgia, serif", sans: "Arial, sans-serif", playful: "'DynaPuff', cursive" }
+      fonts: { serif: BUILDER_FONT_FAMILY, sans: BUILDER_FONT_FAMILY, playful: BUILDER_FONT_FAMILY }
     };
     let activeBuilderSiteId = "";
     let activeBuilderSite = null;
@@ -301,7 +302,7 @@
         } else {
           content = document.createElement("div");
           content.className = "canvas-image-placeholder";
-          content.textContent = "Add an image URL in block settings";
+          content.textContent = "Add an image URL in the editor panel.";
         }
       } else if (block.type === "button") {
         content = document.createElement("span");
@@ -337,10 +338,10 @@
     }
 
     function renderBuilderPanel(site) {
-      // This is the side panel where the user can switch tabs like Pages, Design, and Elements.
+      // This is the side panel where the user can switch between Pages and Elements.
       const panel = document.getElementById("builderPanelContent");
       const page = site.pages.find(item => item.id === activeBuilderPageId) || site.pages[0];
-      const tabTitles = { pages: "Pages", design: "Design", elements: "Elements" };
+      const tabTitles = { pages: "Pages", elements: "Elements" };
       document.querySelectorAll(".builder-tab").forEach(button => {
         const selected = button.dataset.builderTab === activeBuilderTab;
         button.classList.toggle("active", selected);
@@ -349,8 +350,6 @@
       document.getElementById("builderPanel").setAttribute("aria-labelledby", `builderTab${activeBuilderTab[0].toUpperCase()}${activeBuilderTab.slice(1)}`);
       if (activeBuilderTab === "pages") {
         panel.innerHTML = `<h2>${tabTitles.pages}</h2><div class="builder-page-list">${site.pages.map(item => `<button class="builder-page-item ${item.id === page.id ? "active" : ""}" type="button" data-page-id="${escapeHtml(item.id)}"><span aria-hidden="true">▧</span><span>${escapeHtml(item.title)}</span></button>`).join("")}</div><button class="builder-add-page" type="button" data-action="add-page">＋ Add page</button><label class="builder-page-name">Page name<input id="builderPageName" maxlength="40" value="${escapeHtml(page.title)}"></label>${site.pages.length > 1 ? '<button class="builder-delete-page" type="button" data-action="delete-page">Delete page</button>' : ""}`;
-      } else if (activeBuilderTab === "design") {
-        panel.innerHTML = `<h2>${tabTitles.design}</h2><p class="builder-panel-note">Site-wide style</p><label class="builder-page-name">Page background<select data-site-style="background"><option value="paper" ${site.design.background === "paper" ? "selected" : ""}>Paper</option><option value="mint" ${site.design.background === "mint" ? "selected" : ""}>Mint</option><option value="blush" ${site.design.background === "blush" ? "selected" : ""}>Blush</option><option value="butter" ${site.design.background === "butter" ? "selected" : ""}>Butter</option></select></label><label class="builder-page-name">Font<select data-site-style="font"><option value="serif" ${site.design.font === "serif" ? "selected" : ""}>Editorial serif</option><option value="sans" ${site.design.font === "sans" ? "selected" : ""}>Clean sans</option><option value="playful" ${site.design.font === "playful" ? "selected" : ""}>Playful</option></select></label>`;
       } else {
         panel.innerHTML = `<h2>${tabTitles.elements}</h2><p class="builder-panel-note">Add to ${escapeHtml(page.title)}</p><div class="builder-element-list"><button type="button" data-add-block="heading"><span aria-hidden="true">T</span> Heading</button><button type="button" data-add-block="text"><span aria-hidden="true">¶</span> Text</button><button type="button" data-add-block="image"><span aria-hidden="true">▧</span> Image</button><button type="button" data-add-block="button"><span aria-hidden="true">↗</span> Button</button><button type="button" data-add-block="divider"><span aria-hidden="true">―</span> Divider</button></div>`;
       }
@@ -378,18 +377,18 @@
     }
 
     function renderBlockInspector(block) {
-      // This panel lets the user edit the selected block's text, color, and alignment.
+      // This panel lets the user edit the selected block's content and alignment.
       const inspector = document.getElementById("builderInspector");
       if (!block) {
-        inspector.innerHTML = '<p class="inspector-empty">Select a block on the page to edit it.</p>';
+        inspector.innerHTML = '<p class="inspector-empty">Nothing selected yet. Choose a block to start editing.</p>';
         return;
       }
       const contentField = block.type === "image"
         ? `<label>Image URL<input data-property="src" type="url" value="${escapeHtml(block.content.src || "")}" placeholder="https://example.com/image.jpg"></label><label>Alt text<input data-property="alt" value="${escapeHtml(block.content.alt || "")}" placeholder="Describe the image"></label>`
         : block.type === "divider"
-          ? '<p class="inspector-empty">A simple divider between page content.</p>'
+          ? ""
           : `<label>${block.type === "heading" ? "Heading" : block.type === "button" ? "Button label" : "Text"}<textarea data-property="text" rows="${block.type === "heading" ? 3 : 5}" maxlength="500">${escapeHtml(block.content.text || "")}</textarea></label>${block.type === "button" ? `<label>Link<input data-property="href" type="url" value="${escapeHtml(block.content.href || "")}" placeholder="https://example.com or #section"></label>` : ""}`;
-      inspector.innerHTML = `${contentField}<label>Alignment<select data-style="align"><option value="left" ${blockAlignment(block) === "left" ? "selected" : ""}>Left</option><option value="center" ${blockAlignment(block) === "center" ? "selected" : ""}>Center</option><option value="right" ${blockAlignment(block) === "right" ? "selected" : ""}>Right</option></select></label><label>Color<select data-style="tone"><option value="ink" ${blockTone(block) === "ink" ? "selected" : ""}>Ink</option><option value="rose" ${blockTone(block) === "rose" ? "selected" : ""}>Rose</option><option value="moss" ${blockTone(block) === "moss" ? "selected" : ""}>Moss</option></select></label><div class="inspector-actions"><button class="button-secondary" type="button" data-action="move-block-up">Move up</button><button class="button-secondary" type="button" data-action="move-block-down">Move down</button><button class="button-secondary" type="button" data-action="duplicate-block">Duplicate</button><button class="button-danger" type="button" data-action="delete-block">Delete block</button></div>`;
+      inspector.innerHTML = `${contentField}<label>Alignment<select data-style="align"><option value="left" ${blockAlignment(block) === "left" ? "selected" : ""}>Left</option><option value="center" ${blockAlignment(block) === "center" ? "selected" : ""}>Center</option><option value="right" ${blockAlignment(block) === "right" ? "selected" : ""}>Right</option></select></label><div class="inspector-actions"><button class="button-secondary" type="button" data-action="move-block-up">Move up</button><button class="button-secondary" type="button" data-action="move-block-down">Move down</button><button class="button-secondary" type="button" data-action="duplicate-block">Duplicate</button><button class="button-danger" type="button" data-action="delete-block">Delete block</button></div>`;
     }
 
     function openBuilder(siteId) {
@@ -588,7 +587,7 @@
       if (block.type === "heading") return `<h1 class="tone-${tone} align-${alignment}">${escapeHtml(block.content.text || "")}</h1>`;
       if (block.type === "text") return `<p class="tone-${tone} align-${alignment}">${escapeHtml(block.content.text || "")}</p>`;
       if (block.type === "image") {
-        const source = safeWebAddress(block.contePnt.src);
+        const source = safeWebAddress(block.content.src);
         return source ? `<img class="site-image align-${alignment}" src="${escapeHtml(source)}" alt="${escapeHtml(block.content.alt || "")}">` : "";
       }
       if (block.type === "button") {
@@ -613,7 +612,37 @@
         ? `<nav class="site-nav" aria-label="Pages">${pages.map(page => `<a href="#${escapeHtml(page.id)}">${escapeHtml(page.title)}</a>`).join("")}</nav>`
         : "";
       const pageSections = pages.map(page => `<section class="site-main site-page" id="${escapeHtml(page.id)}"><h1>${escapeHtml(page.title)}</h1>${page.content}</section>`).join("\n");
-      return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>*{box-sizing:border-box}body{margin:0;background:${background};color:#25251f;font-family:${font}}.site-header{padding:20px 7%;background:#fff}.site-nav{display:flex;flex-wrap:wrap;gap:8px 20px;padding:14px 7%;background:#fff;border-top:1px solid #eee}.site-nav a{color:#8f3158;font:600 14px Arial,sans-serif;text-decoration:none}.site-page{width:min(760px,calc(100% - 40px));min-height:75vh;margin:48px auto;padding:clamp(24px,7vw,72px);background:#fff;scroll-margin-top:24px}.site-page h1{font-size:clamp(38px,7vw,72px);line-height:1.05;margin:0 0 24px}.site-page p{font-size:18px;line-height:1.7}.site-page hr{border:0;border-top:1px solid #dedbd2;margin:28px 0}.site-image{display:block;max-width:100%;height:auto;margin:20px auto}.align-left{text-align:left}.align-center{text-align:center}.align-right{text-align:right}.tone-ink{color:#25251f}.tone-rose{color:#b54270}.tone-moss{color:#3e6e58}.site-button{display:inline-block;padding:13px 20px;background:#b54270;color:#fff;text-decoration:none;font:600 15px Arial,sans-serif}</style></head><body><header class="site-header">${title}</header>${navigation}${pageSections}<\/body></html>`;
+      return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:${background};color:#25251f;font-family:${font}}
+    .site-header{padding:20px 7%;background:#fff}
+    .site-nav{display:flex;flex-wrap:wrap;gap:8px 20px;padding:14px 7%;background:#fff;border-top:1px solid #eee}
+    .site-nav a{color:#8f3158;font:600 14px ${font};text-decoration:none}
+    .site-page{width:min(760px,calc(100% - 40px));min-height:75vh;margin:48px auto;padding:clamp(24px,7vw,72px);background:#fff;scroll-margin-top:24px}
+    .site-page h1{font-size:clamp(38px,7vw,72px);line-height:1.05;margin:0 0 24px}
+    .site-page p{font-size:18px;line-height:1.7}
+    .site-page hr{border:0;border-top:1px solid #dedbd2;margin:28px 0}
+    .site-image{display:block;max-width:100%;height:auto;margin:20px auto}
+    .align-left{text-align:left}.align-center{text-align:center}.align-right{text-align:right}
+    .tone-ink{color:#25251f}.tone-rose{color:#b54270}.tone-moss{color:#3e6e58}
+    .site-button{display:inline-block;padding:13px 20px;background:#b54270;color:#fff;text-decoration:none;font:600 15px ${font}}
+  </style>
+</head>
+<body>
+  <header class="site-header">${title}</header>
+  ${navigation}
+  ${pageSections}
+</body>
+</html>`;
     }
 
     function previewSite(siteId = activeBuilderSiteId) {
@@ -770,16 +799,8 @@
       scheduleBuilderSave();
     });
 
-    // When a dropdown changes, update the site or block style and re-render the builder.
+    // When a block style changes, update it and re-render the builder.
     document.getElementById("builderEditor").addEventListener("change", event => {
-      if (event.target.dataset.siteStyle) {
-        const site = activeBuilderSite;
-        if (!site) return;
-        site.design[event.target.dataset.siteStyle] = event.target.value;
-        renderBuilder();
-        scheduleBuilderSave();
-        return;
-      }
       if (!event.target.dataset.style) return;
       const site = activeBuilderSite;
       const block = site && getSiteBlocks(site).find(item => item.id === selectedBlockId);

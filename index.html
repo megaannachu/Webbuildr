@@ -118,7 +118,7 @@
           <label class="builder-site-name">Site name<input id="builderSiteName" maxlength="60" autocomplete="off"></label>
           <div class="builder-toolbar-actions">
             <span id="builderSaveStatus" role="status">Saved</span>
-            <button class="button-secondary" type="button" data-action="preview-builder">Preview</button>
+            <button class="button-secondary" type="button" data-action="preview-builder">Preview site</button>
             <button class="button-primary" type="button" data-action="export-site">Export HTML</button>
           </div>
         </header>
@@ -126,7 +126,6 @@
           <aside class="builder-sidebar" aria-label="Builder tools">
             <nav class="builder-rail" role="tablist" aria-label="Builder sections">
               <button class="builder-tab active" id="builderTabPages" type="button" role="tab" aria-selected="true" aria-controls="builderPanel" data-builder-tab="pages"><span aria-hidden="true">▤</span>Pages</button>
-              <button class="builder-tab" id="builderTabDesign" type="button" role="tab" aria-selected="false" aria-controls="builderPanel" data-builder-tab="design"><span aria-hidden="true">◐</span>Design</button>
               <button class="builder-tab" id="builderTabElements" type="button" role="tab" aria-selected="false" aria-controls="builderPanel" data-builder-tab="elements"><span aria-hidden="true">＋</span>Elements</button>
             </nav>
             <section class="builder-panel" id="builderPanel" role="tabpanel" aria-labelledby="builderTabPages">
@@ -134,12 +133,12 @@
             </section>
           </aside>
           <section class="builder-stage" aria-label="Page canvas">
-            <div class="builder-stage-heading"><span id="builderCurrentPageTitle">HOME</span><span>Drag blocks to move them</span></div>
+            <div class="builder-stage-heading"><span id="builderCurrentPageTitle">HOME</span><span>Move blocks around until the page feels right.</span></div>
             <div class="builder-canvas" id="builderCanvas"></div>
-            <p class="builder-empty" id="builderEmpty" hidden>This page is empty.</p>
+            <p class="builder-empty" id="builderEmpty" hidden>Nothing here yet. Add a block to get started.</p>
           </section>
-          <aside class="builder-inspector" aria-label="Selected block settings">
-            <h2>Block settings</h2>
+          <aside class="builder-inspector" aria-label="Edit the selected block">
+            <h2>Edit this block</h2>
             <div id="builderInspector"><p class="inspector-empty">Choose a block to change it.</p></div>
           </aside>
         </div>
