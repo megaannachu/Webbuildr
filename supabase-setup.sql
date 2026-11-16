@@ -10,13 +10,13 @@ create unique index profiles_username_case_insensitive_key
 
 alter table public.profiles enable row level security;
 
--- A signed-in user can read only their own profile.
+-- where a signed-in user can read only their own profile
 create policy "Users can read their own profile"
   on public.profiles for select
   to authenticated
   using ((select auth.uid()) = id);
 
--- Create a profile whenever Supabase creates a new account.
+-- create a profile whenever Supabase creates a new account
 create function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -52,7 +52,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Save each user's websites in a separate table.
+-- save each user's websites in a separate table
 create table public.sites (
   id uuid primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -64,7 +64,7 @@ create table public.sites (
 
 alter table public.sites enable row level security;
 
--- These rules let users work only with their own websites.
+-- rules that let users work only with their own websites
 create policy "Users can read their own sites"
   on public.sites for select
   to authenticated

@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- page setup :)) -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Web Buildr</title>
@@ -8,6 +9,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- lloading animation !!!! -->
   <div class="loading-screen" id="loadingScreen" role="status" aria-label="Loading Web Buildr">
     <span class="visually-hidden">Loading Web Buildr</span>
     <div class="loading-cubes" aria-hidden="true">
@@ -16,9 +18,12 @@
       <div class="loading-cube"><div class="loading-cube__inner"></div></div>
     </div>
   </div>
+  <!-- App messages -->
   <p class="app-status" id="appStatus" role="alert" hidden></p>
-  <!-- The first screen shows the logo, sign-in buttons, and ways to build. -->
+
+  <!-- Landing page!! -->
   <main class="container" id="landingPage">
+    <!-- Account buttons!!!!! -->
     <div class="top-account-buttons" aria-label="Account actions">
       <img class="top-logo" src="https://file.garden/aKtEcZD-hThC8Gxk/webbuildr%20lowercase.png" alt="Web Buildr logo">
       <button onclick="openSignIn()">Sign In</button>
@@ -34,6 +39,7 @@
       <button onclick="openCreateAccount()">Create Account</button>
     </div>
 
+    <!-- Builder choices!! >< -->
     <section class="builder-choices" aria-labelledby="builderChoicesTitle">
       <h1 id="builderChoicesTitle">Choose how you want to build</h1>
       <div class="builder-choice-grid">
@@ -77,17 +83,19 @@
     </div>
   </main>
 
+  <!-- Dashboard!!! -->
   <div class="dashboard" id="dashboardPage" hidden>
     <aside class="dashboard-sidebar">
       <a class="sidebar-logo" href="#dashboard" data-view="dashboard" aria-label="Webbuildr dashboard">
         <img src="https://file.garden/aKtEcZD-hThC8Gxk/webbuildr%20lowercase.png" alt="Web Buildr logo">
       </a>
+      <!-- Dashboard navigation -->
       <nav class="sidebar-menu" aria-label="Main navigation">
-        <button class="sidebar-button active" type="button" data-view="dashboard"><span aria-hidden="true">⌂</span> Dashboard</button>
-        <button class="sidebar-button" type="button" data-view="sites"><span aria-hidden="true">▦</span> My Sites</button>
-        <button class="sidebar-button" type="button" data-view="templates"><span aria-hidden="true">▤</span> Templates</button>
-        <button class="sidebar-button" type="button" data-view="resources"><span aria-hidden="true">◇</span> Resources</button>
-        <button class="sidebar-button" type="button" data-view="settings"><span aria-hidden="true">⚙</span> Settings</button>
+        <button class="sidebar-button active" type="button" data-view="dashboard"><span aria-hidden="true"></span> Dashboard</button>
+        <button class="sidebar-button" type="button" data-view="sites"><span aria-hidden="true"></span> My Sites</button>
+        <button class="sidebar-button" type="button" data-view="templates"><span aria-hidden="true"></span> Templates</button>
+        <button class="sidebar-button" type="button" data-view="resources"><span aria-hidden="true"></span> Resources</button>
+        <button class="sidebar-button" type="button" data-view="settings"><span aria-hidden="true"></span> Settings</button>
       </nav>
     </aside>
 
@@ -97,12 +105,13 @@
           <h1 id="dashboardWelcome">Welcome back!</h1>
         </div>
         <div class="dashboard-user">
-          <span class="profile-circle" id="dashboardAvatar" aria-hidden="true">W</span>
-          <span id="dashboardUsername"></span>
           <button class="signout-button" type="button" onclick="signOut()">Sign Out</button>
         </div>
       </header>
+      <!-- Dashboard content,, -->
       <div id="dashboardContent" class="dashboard-content" aria-live="polite"></div>
+
+      <!-- Website editor ,,-->
       <section class="builder-editor" id="builderEditor" hidden aria-label="Website editor">
         <header class="builder-toolbar">
           <button class="button-secondary builder-back" type="button" data-action="close-editor">← Dashboard</button>
@@ -135,6 +144,8 @@
           </aside>
         </div>
       </section>
+
+      <!-- Site dialogs, -->
       <dialog class="site-dialog" id="siteDialog" aria-labelledby="siteDialogTitle">
         <form id="siteForm">
           <p class="eyebrow">YOUR NEXT PROJECT!</p>
@@ -157,6 +168,7 @@
     </section>
   </div>
 
+  <!-- sign-in form -->
   <div class="overlay" id="signinOverlay">
     <section class="account-box" aria-label="Sign in">
       <button class="close-button" onclick="closeSignIn()" aria-label="Close sign in">X</button>
@@ -172,6 +184,7 @@
     </section>
   </div>
 
+  <!-- Aaaccount creation form -->
   <div class="overlay" id="createAccountOverlay">
     <section class="account-box" aria-label="Create account">
       <button class="close-button" onclick="closeCreateAccount()" aria-label="Close create account">X</button>
@@ -191,6 +204,7 @@
     </section>
   </div>
 
+  <!-- App logic ..-->
   <script type="module" src="/main.js"></script>
 </body>
 </html>

@@ -1,6 +1,9 @@
 ﻿import { createClient } from '@supabase/supabase-js';
 
-    // Keep the app's shared data in one place.
+    // This file powers up the whole website. It keeps track of the logged-in user,
+    // the saved sites, and the website builder state.
+    // Basically,  it updates the page,
+    // and saves the user's content whenever they change something.
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const supabase = supabaseUrl && supabasePublishableKey
@@ -9,9 +12,7 @@
     let currentUser = null;
     let currentSites = [];
     const TEMPLATE_OPTIONS = [
-      { id: "blank", name: "Blank Canvas", description: "A clean page for your own ideas.", color: "mint" },
-      { id: "portfolio", name: "Portfolio", description: "Showcase your work and experience.", color: "pink" },
-      { id: "studio", name: "Studio", description: "A polished home for a small business.", color: "yellow" }
+      { id: "blank", name: "Blank Canvas", description: "A clean page for your own ideas." }
     ];
     const BLOCK_TONES = ["ink", "rose", "moss"];
     const DESIGN_PRESETS = {
@@ -28,7 +29,8 @@
     let pointerDragAfterTarget = false;
     let builderSaveTimer = 0;
 
-    // Show or hide the sign-in and create-account forms.
+    // These open and close the pop-up auth forms.
+    // They simply add or remove a CSS class that makes the overlay visible.
     function show(id) {
       document.getElementById(id).classList.add("active");
     }
@@ -65,6 +67,8 @@
       openSignIn();
     }
 
+    // Basic validation checks so we do not accept non usable email addresses
+    // or usernames that are too short or use invalid characters.
     function isValidEmail(email) {
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
@@ -73,6 +77,7 @@
       return /^[A-Za-z0-9_]{3,20}$/.test(username);
     }
 
+    // Show a message under a form. The type changes the CSS color.
     function setMessage(id, text, type) {
       const message = document.getElementById(id);
       message.textContent = text;
@@ -83,12 +88,15 @@
       setMessage(id, "", "");
     }
 
+    // Escape user text before injecting it into HTML. This prevents weird
+    // characters from breaking the page or creating HTML injection issues.
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, character => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
       })[character]);
     }
 
+    // Display a small user avatar or the first letter of their username.
     function renderAvatar(element, user) {
       if (!element) return;
       const imageData = typeof user?.avatarDataUrl === "string" && user.avatarDataUrl.startsWith("data:image/jpeg;base64,") ? user.avatarDataUrl : "";
@@ -110,7 +118,8 @@
       status.hidden = !message;
     }
 
-    // Sign in with GitHub.
+    // Use GitHub OAuth so the user can log in without making a password.
+    // Supabase handles the redirect and returns them to the app after sign-in.
     async function signInWithGitHub(messageId = "signinMessage") {
       if (!supabase) {
         setMessage(messageId, "Supabase is not configured.", "error");
@@ -129,7 +138,8 @@
       }
     }
 
-    // Load and save the user's websites.
+    // These functions manage the currently signed-in user and the list of saved sites.
+    // The app keeps this data in memory so it can update the dashboard quickly.
     function getSignedInUser() {
       return currentUser;
     }
@@ -156,7 +166,8 @@
       currentSites = sites;
     }
 
-    // Create the data used by the website editor.
+    // The builder works with reusable blocks like text, buttons, and images.
+    // Each block needs a unique ID so the app can find and edit the correct one.
     function createId() {
       if (window.crypto?.randomUUID) return window.crypto.randomUUID();
 
@@ -169,6 +180,7 @@
     }
 
     function makeBlock(type, content = {}) {
+      // Every block has default content and styling, but the user can later change it.
       const defaults = {
         heading: { text: "Add your title here" },
         text: { text: "Add some text here" },
@@ -205,6 +217,8 @@
     }
 
     function ensureSitePages(site) {
+      // Make sure every saved site has at least one page and valid design settings.
+      // This prevents crashes when old projects are loaded from Supabase.
       if (!Array.isArray(site.pages) || !site.pages.length) {
         site.pages = [{ id: "page-home", title: "Home", blocks: starterBlocks(site.template) }];
       }
@@ -260,6 +274,8 @@
       return /^(https?:|mailto:|tel:|#)/i.test(address) ? address : "";
     }
 
+    // This turns a stored block object into something visible on the builder canvas.
+    // We create a real DOM element based on the block type, like heading or image.
     function makeCanvasBlock(block) {
       const element = document.createElement("div");
       element.className = `canvas-block tone-${blockTone(block)} align-${blockAlignment(block)}`;
@@ -299,6 +315,8 @@
       return element;
     }
 
+    // Repaint the website editor for the currently selected site.
+    // The builder shows the canvas, page tabs, and the editing panel together.
     function renderBuilder() {
       const site = activeBuilderSite;
       if (!site) return closeBuilder();
@@ -319,6 +337,7 @@
     }
 
     function renderBuilderPanel(site) {
+      // This is the side panel where the user can switch tabs like Pages, Design, and Elements.
       const panel = document.getElementById("builderPanelContent");
       const page = site.pages.find(item => item.id === activeBuilderPageId) || site.pages[0];
       const tabTitles = { pages: "Pages", design: "Design", elements: "Elements" };
@@ -338,6 +357,7 @@
     }
 
     function addBuilderPage() {
+      // A page is another section in the website, like separate tabs or sections.
       if (!activeBuilderSite) return;
       const page = { id: window.crypto?.randomUUID?.() || `page-${Date.now()}`, title: `Page ${activeBuilderSite.pages.length + 1}`, blocks: [] };
       activeBuilderSite.pages.push(page);
@@ -358,6 +378,7 @@
     }
 
     function renderBlockInspector(block) {
+      // This panel lets the user edit the selected block's text, color, and alignment.
       const inspector = document.getElementById("builderInspector");
       if (!block) {
         inspector.innerHTML = '<p class="inspector-empty">Select a block on the page to edit it.</p>';
@@ -372,6 +393,7 @@
     }
 
     function openBuilder(siteId) {
+      // Open the full website builder for a chosen site and hide the dashboard.
       const site = getSites().find(item => item.id === siteId);
       if (!site) return;
       activeBuilderSiteId = site.id;
@@ -387,6 +409,7 @@
     }
 
     function closeBuilder() {
+      // Exit builder mode and save the current site before returning to the dashboard.
       window.clearTimeout(builderSaveTimer);
       persistBuilderSite();
       activeBuilderSiteId = "";
@@ -469,14 +492,11 @@
       scheduleBuilderSave();
     }
 
-    // Show the dashboard pages and their website cards.
+    // These helpers create the dashboard cards for saved sites and templates.
+    // The dashboard is the landing page the user sees after signing in.
     function siteCard(site) {
       return `
         <article class="site-card">
-          <div class="site-preview ${escapeHtml(site.template)}" aria-hidden="true">
-            <div class="preview-top"></div>
-            <div class="preview-content"><i></i><i></i><i></i></div>
-          </div>
           <div class="site-information">
             <div><h3>${escapeHtml(site.title)}</h3></div>
             <div class="site-buttons">
@@ -493,8 +513,7 @@
 
     function templateCards() {
       return TEMPLATE_OPTIONS.map(template => `
-        <article class="template-card ${template.color}">
-          <div class="template-art" aria-hidden="true"><span></span><span></span><span></span></div>
+        <article class="template-card">
           <div class="template-card-copy"><h3>${template.name}</h3>
             <button class="button-primary" type="button" data-action="use-template" data-template="${template.id}">Use template</button>
           </div>
@@ -533,13 +552,14 @@
       } else {
         const latestSite = sites[0];
         content.innerHTML = `
-          <section class="create-banner"><div><h2>Create something new</h2></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></section>
+          <section class="create-banner"><div><h2>Create a website!</h2></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></section>
           <section class="dashboard-section"><div class="section-heading compact"><div><h2>Latest site</h2></div><button class="text-button" type="button" data-view="sites">View all <span aria-hidden="true">→</span></button></div>${latestSite ? siteCard(latestSite) : emptySites()}</section>
           <section class="dashboard-section"><div class="section-heading compact"><div><h2>Start with a template</h2></div><button class="text-button" type="button" data-view="templates">Browse all <span aria-hidden="true">→</span></button></div><div class="template-grid home-templates">${templateCards()}</div></section>`;
       }
     }
 
     function openSiteDialog(templateId = "blank", siteId = "") {
+      // This opens the dialog used to create a brand-new site or rename an existing one.
       const template = TEMPLATE_OPTIONS.find(option => option.id === templateId) || TEMPLATE_OPTIONS[0];
       const site = siteId ? getSites().find(item => item.id === siteId) : null;
       const dialog = document.getElementById("siteDialog");
@@ -560,7 +580,8 @@
       openBuilder(siteId);
     }
 
-    // Turn the saved blocks into a website that can be previewed or downloaded.
+    // Convert each block into HTML so the preview and export file can be rendered.
+    // This is the final website version, separate from the editor canvas.
     function renderBlockHtml(block) {
       const alignment = blockAlignment(block);
       const tone = blockTone(block);
@@ -578,6 +599,7 @@
     }
 
     function buildSiteHtml(site) {
+      // Build a complete HTML document for the final site preview or export file.
       ensureSitePages(site);
       const title = escapeHtml(site.title || "Untitled site");
       const background = DESIGN_PRESETS.backgrounds[site.design?.background] || DESIGN_PRESETS.backgrounds.paper;
@@ -595,6 +617,7 @@
     }
 
     function previewSite(siteId = activeBuilderSiteId) {
+      // Show a modal preview window with the finished website.
       const site = activeBuilderSite?.id === siteId ? activeBuilderSite : getSites().find(item => item.id === siteId);
       if (!site) return;
       document.getElementById("previewDialogTitle").textContent = site.title;
@@ -603,6 +626,7 @@
     }
 
     function exportSite() {
+      // Download the current site as a standalone HTML file the user can open in a browser.
       const site = activeBuilderSite;
       if (!site) return;
       const blobUrl = URL.createObjectURL(new Blob([buildSiteHtml(site)], { type: "text/html" }));
@@ -613,7 +637,8 @@
       window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     }
 
-    // Handle clicks on buttons that are added to the page later.
+    // Event delegation means we listen once on the document and check what was clicked.
+    // This lets the app respond to buttons that are created dynamically after the page loads.
     document.addEventListener("click", event => {
       const viewButton = event.target.closest("[data-view]");
       if (viewButton) {
@@ -723,6 +748,7 @@
     document.addEventListener("pointerup", finishBlockDrag);
     document.addEventListener("pointercancel", finishBlockDrag);
 
+    // While the user types, update the selected block in memory and redraw only the canvas.
     document.getElementById("builderEditor").addEventListener("input", event => {
       const site = activeBuilderSite;
       if (!site) return;
@@ -744,6 +770,7 @@
       scheduleBuilderSave();
     });
 
+    // When a dropdown changes, update the site or block style and re-render the builder.
     document.getElementById("builderEditor").addEventListener("change", event => {
       if (event.target.dataset.siteStyle) {
         const site = activeBuilderSite;
@@ -768,6 +795,7 @@
       document.getElementById("builderEmpty").hidden = blocks.length > 0;
     }
 
+    // Save new site names and edits when the user submits the site form.
     document.addEventListener("submit", async event => {
       if (event.target.id !== "siteForm") return;
       event.preventDefault();
@@ -801,7 +829,8 @@
       }
     });
 
-    // Create accounts, sign in, and load saved account data.
+    // Account flow: create an account, sign in, sign out, and load the user's profile.
+    // These functions talk to Supabase, which stores user data and saved sites securely.
     async function createAccount() {
       const username = document.getElementById("createUsername").value.trim();
       const email = document.getElementById("createEmail").value.trim();
@@ -904,6 +933,7 @@
     }
 
     async function loadSignedInUser(authUser) {
+      // After login, load the matching profile and the saved sites for this user.
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("username")
@@ -947,16 +977,18 @@
     }
 
     function updateSignedInDisplay() {
+      // Toggle between the landing page and dashboard depending on whether someone is signed in.
       const signedInUser = getSignedInUser();
       document.getElementById("landingPage").hidden = Boolean(signedInUser);
       document.getElementById("dashboardPage").hidden = !signedInUser;
       document.body.classList.toggle("dashboard-mode", Boolean(signedInUser));
       document.getElementById("dashboardWelcome").textContent = signedInUser ? "Welcome, " + signedInUser.username + "!" : "";
-      document.getElementById("dashboardUsername").textContent = signedInUser ? signedInUser.username : "";
       renderAvatar(document.getElementById("dashboardAvatar"), signedInUser);
       if (signedInUser) showDashboardView("dashboard");
     }
 
+    // Start the app by checking whether the user is already signed in.
+    // This runs once when the page loads and sets up the auth listener.
     async function initializeApplication() {
       try {
         if (!supabase) throw new Error("Supabase settings are missing. Copy .env.example to .env.local, add your project URL and publishable key, then restart the app.");

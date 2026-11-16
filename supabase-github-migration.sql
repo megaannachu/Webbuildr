@@ -1,5 +1,4 @@
--- Create or update the tables and sign-in setup used by WebBuildr.
--- This script can be run again if a table or setup step is missing.
+-- Profiles,
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   username text not null check (username ~ '^[A-Za-z0-9_]{3,20}$'),
@@ -11,7 +10,7 @@ create unique index if not exists profiles_username_case_insensitive_key
 
 alter table public.profiles enable row level security;
 
--- Add the profile-reading rule only if it is not already there.
+-- Profile access,,
 do $$
 begin
   if not exists (
@@ -29,7 +28,7 @@ begin
 end;
 $$;
 
--- Create a profile for new accounts, including GitHub accounts.
+-- New-user profiles ><
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -62,7 +61,7 @@ begin
 end;
 $$;
 
--- Make sure every existing account has a profile.
+-- Existing profiles,,
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
@@ -94,7 +93,7 @@ where not exists (
 )
 on conflict (id) do nothing;
 
--- Create the table that stores each user's websites.
+-- Sites,,
 create table if not exists public.sites (
   id uuid primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -106,7 +105,7 @@ create table if not exists public.sites (
 
 alter table public.sites enable row level security;
 
--- Add the website access rules only when they are missing.
+-- Site access ,,
 do $$
 begin
   if not exists (

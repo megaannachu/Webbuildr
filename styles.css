@@ -426,36 +426,6 @@ button:hover { background: rgb(233, 78, 170); transform: translateY(-2px); }
   overflow: hidden;
 }
 
-.site-preview {
-  position: relative;
-  height: 140px;
-  background: linear-gradient(135deg, #f4dcdf, #dfeff8);
-  overflow: hidden;
-}
-
-.site-preview.mint { background: linear-gradient(135deg, #d3f2ea, #ebfaf7); }
-.site-preview.portfolio { background: linear-gradient(135deg, #fddfe8, #fcefe5); }
-.site-preview.studio { background: linear-gradient(135deg, #fef1c3, #eaf3ff); }
-
-.preview-top {
-  height: 18px;
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.preview-content {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding: 18px 20px;
-}
-
-.preview-content i {
-  display: block;
-  height: 14px;
-  border-radius: 999px;
-  background: rgba(52, 66, 82, 0.18);
-}
-
 .site-information {
   display: flex;
   align-items: center;
@@ -532,35 +502,6 @@ button:hover { background: rgb(233, 78, 170); transform: translateY(-2px); }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.template-card.mint .template-art { background: linear-gradient(135deg, #d9f6f1, #edfef9); }
-.template-card.pink .template-art { background: linear-gradient(135deg, #fce2ef, #fff2f7); }
-.template-card.yellow .template-art { background: linear-gradient(135deg, #fff0c6, #fffaf0); }
-
-.template-art {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 118px;
-  padding: 18px;
-}
-
-.template-art span {
-  display: block;
-  width: 40%;
-  height: 62%;
-  border-radius: 12px 12px 0 0;
-  background: rgba(58, 73, 90, 0.12);
-}
-
-.template-art span:nth-child(2) {
-  height: 80%;
-}
-
-.template-art span:nth-child(3) {
-  width: 22%;
-  height: 44%;
 }
 
 .template-card-copy {
