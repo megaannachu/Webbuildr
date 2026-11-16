@@ -12,7 +12,7 @@
     let currentUser = null;
     let currentSites = [];
     const TEMPLATE_OPTIONS = [
-      { id: "blank", name: "Blank Canvas", description: "A clean page for your own ideas." }
+      { id: "blank", name: "Blank Site", description: "A clean page for your own ideas." }
     ];
     const BLOCK_TONES = ["ink", "rose", "moss"];
     const BUILDER_FONT_FAMILY = '"DynaPuff", system-ui';
@@ -302,7 +302,7 @@
         } else {
           content = document.createElement("div");
           content.className = "canvas-image-placeholder";
-          content.textContent = "Add an image URL in the editor panel.";
+          content.setAttribute("aria-hidden", "true");
         }
       } else if (block.type === "button") {
         content = document.createElement("span");
@@ -329,7 +329,6 @@
       }
       canvas.style.backgroundColor = DESIGN_PRESETS.backgrounds[site.design.background];
       canvas.style.fontFamily = DESIGN_PRESETS.fonts[site.design.font];
-      document.getElementById("builderEmpty").hidden = blocks.length > 0;
       document.getElementById("builderSiteName").value = site.title;
       const page = site.pages.find(item => item.id === activeBuilderPageId);
       document.getElementById("builderCurrentPageTitle").textContent = page.title.toUpperCase();
@@ -349,9 +348,9 @@
       });
       document.getElementById("builderPanel").setAttribute("aria-labelledby", `builderTab${activeBuilderTab[0].toUpperCase()}${activeBuilderTab.slice(1)}`);
       if (activeBuilderTab === "pages") {
-        panel.innerHTML = `<h2>${tabTitles.pages}</h2><div class="builder-page-list">${site.pages.map(item => `<button class="builder-page-item ${item.id === page.id ? "active" : ""}" type="button" data-page-id="${escapeHtml(item.id)}"><span aria-hidden="true">▧</span><span>${escapeHtml(item.title)}</span></button>`).join("")}</div><button class="builder-add-page" type="button" data-action="add-page">＋ Add page</button><label class="builder-page-name">Page name<input id="builderPageName" maxlength="40" value="${escapeHtml(page.title)}"></label>${site.pages.length > 1 ? '<button class="builder-delete-page" type="button" data-action="delete-page">Delete page</button>' : ""}`;
+        panel.innerHTML = `<h2>${tabTitles.pages}</h2><div class="builder-page-list">${site.pages.map(item => `<button class="button-secondary builder-page-item ${item.id === page.id ? "active" : ""}" type="button" data-page-id="${escapeHtml(item.id)}"><span>${escapeHtml(item.title)}</span></button>`).join("")}</div><button class="button-secondary builder-add-page" type="button" data-action="add-page">＋ Add page</button><label class="builder-page-name">Page name<input id="builderPageName" maxlength="40" value="${escapeHtml(page.title)}"></label>${site.pages.length > 1 ? '<button class="button-danger builder-delete-page" type="button" data-action="delete-page">Delete page</button>' : ""}`;
       } else {
-        panel.innerHTML = `<h2>${tabTitles.elements}</h2><p class="builder-panel-note">Add to ${escapeHtml(page.title)}</p><div class="builder-element-list"><button type="button" data-add-block="heading"><span aria-hidden="true">T</span> Heading</button><button type="button" data-add-block="text"><span aria-hidden="true">¶</span> Text</button><button type="button" data-add-block="image"><span aria-hidden="true">▧</span> Image</button><button type="button" data-add-block="button"><span aria-hidden="true">↗</span> Button</button><button type="button" data-add-block="divider"><span aria-hidden="true">―</span> Divider</button></div>`;
+        panel.innerHTML = `<h2>${tabTitles.elements}</h2><div class="builder-element-list"><button class="button-secondary" type="button" data-add-block="heading">Heading</button><button class="button-secondary" type="button" data-add-block="text">Text</button><button class="button-secondary" type="button" data-add-block="image">Image</button><button class="button-secondary" type="button" data-add-block="button">Button</button><button class="button-secondary" type="button" data-add-block="divider">Divider</button></div>`;
       }
     }
 
@@ -380,14 +379,14 @@
       // This panel lets the user edit the selected block's content and alignment.
       const inspector = document.getElementById("builderInspector");
       if (!block) {
-        inspector.innerHTML = '<p class="inspector-empty">Nothing selected yet. Choose a block to start editing.</p>';
+        inspector.replaceChildren();
         return;
       }
       const contentField = block.type === "image"
-        ? `<label>Image URL<input data-property="src" type="url" value="${escapeHtml(block.content.src || "")}" placeholder="https://example.com/image.jpg"></label><label>Alt text<input data-property="alt" value="${escapeHtml(block.content.alt || "")}" placeholder="Describe the image"></label>`
+        ? `<label>Image URL<input data-property="src" type="url" value="${escapeHtml(block.content.src || "")}"></label><label>Alt text<input data-property="alt" value="${escapeHtml(block.content.alt || "")}"></label>`
         : block.type === "divider"
           ? ""
-          : `<label>${block.type === "heading" ? "Heading" : block.type === "button" ? "Button label" : "Text"}<textarea data-property="text" rows="${block.type === "heading" ? 3 : 5}" maxlength="500">${escapeHtml(block.content.text || "")}</textarea></label>${block.type === "button" ? `<label>Link<input data-property="href" type="url" value="${escapeHtml(block.content.href || "")}" placeholder="https://example.com or #section"></label>` : ""}`;
+          : `<label>${block.type === "heading" ? "Heading" : block.type === "button" ? "Button label" : "Text"}<textarea data-property="text" rows="${block.type === "heading" ? 3 : 5}" maxlength="500">${escapeHtml(block.content.text || "")}</textarea></label>${block.type === "button" ? `<label>Link<input data-property="href" type="url" value="${escapeHtml(block.content.href || "")}"></label>` : ""}`;
       inspector.innerHTML = `${contentField}<label>Alignment<select data-style="align"><option value="left" ${blockAlignment(block) === "left" ? "selected" : ""}>Left</option><option value="center" ${blockAlignment(block) === "center" ? "selected" : ""}>Center</option><option value="right" ${blockAlignment(block) === "right" ? "selected" : ""}>Right</option></select></label><div class="inspector-actions"><button class="button-secondary" type="button" data-action="move-block-up">Move up</button><button class="button-secondary" type="button" data-action="move-block-down">Move down</button><button class="button-secondary" type="button" data-action="duplicate-block">Duplicate</button><button class="button-danger" type="button" data-action="delete-block">Delete block</button></div>`;
     }
 
@@ -506,10 +505,6 @@
         </article>`;
     }
 
-    function emptySites() {
-      return `<div class="empty-state"><span aria-hidden="true">＋</span><h3>Your first site starts here</h3><button class="button-primary" type="button" data-view="templates">Browse templates</button></div>`;
-    }
-
     function templateCards() {
       return TEMPLATE_OPTIONS.map(template => `
         <article class="template-card">
@@ -532,7 +527,7 @@
       const sites = getSites().sort((first, second) => second.updatedAt - first.updatedAt);
 
       if (view === "sites") {
-        content.innerHTML = `<div class="section-heading"><div><h2>My Sites</h2></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></div><div class="site-grid">${sites.length ? sites.map(siteCard).join("") : emptySites()}</div>`;
+        content.innerHTML = `<div class="section-heading"><div><h2>My Sites</h2></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></div><div class="site-grid">${sites.map(siteCard).join("")}</div>`;
       } else if (view === "templates") {
         content.innerHTML = `<div class="section-heading"><div><h2>Choose a template</h2></div></div><div class="template-grid">${templateCards()}</div>`;
       } else if (view === "resources") {
@@ -552,7 +547,7 @@
         const latestSite = sites[0];
         content.innerHTML = `
           <section class="create-banner"><div><h2>Create a website!</h2></div><button class="button-primary" type="button" data-action="create-site">＋ Create site</button></section>
-          <section class="dashboard-section"><div class="section-heading compact"><div><h2>Latest site</h2></div><button class="text-button" type="button" data-view="sites">View all <span aria-hidden="true">→</span></button></div>${latestSite ? siteCard(latestSite) : emptySites()}</section>
+          <section class="dashboard-section"><div class="section-heading compact"><div><h2>Latest site</h2></div><button class="text-button" type="button" data-view="sites">View all <span aria-hidden="true">→</span></button></div>${latestSite ? siteCard(latestSite) : ""}</section>
           <section class="dashboard-section"><div class="section-heading compact"><div><h2>Start with a template</h2></div><button class="text-button" type="button" data-view="templates">Browse all <span aria-hidden="true">→</span></button></div><div class="template-grid home-templates">${templateCards()}</div></section>`;
       }
     }
@@ -813,7 +808,6 @@
     function renderCanvasOnly(site) {
       const blocks = getSiteBlocks(site);
       document.getElementById("builderCanvas").replaceChildren(...blocks.map(makeCanvasBlock));
-      document.getElementById("builderEmpty").hidden = blocks.length > 0;
     }
 
     // Save new site names and edits when the user submits the site form.
