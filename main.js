@@ -183,10 +183,10 @@
     function makeBlock(type, content = {}) {
       // Every block has default content and styling, but the user can later change it.
       const defaults = {
-        heading: { text: "Add your title here" },
-        text: { text: "Add some text here" },
+        heading: { text: "PLACEHOLDER" },
+        text: { text: "PLACEHOLDER" },
         image: { src: "", alt: "" },
-        button: { text: "Learn more", href: "#" },
+        button: { text: "PLACEHOLDER", href: "#" },
         divider: {}
       };
       return {
@@ -201,7 +201,7 @@
       if (template === "portfolio") {
         return [
           makeBlock("heading", { text: "My Portfolio" }),
-          makeBlock("text", { text: "Add a short introduction about yourself." }),
+          makeBlock("text", { text: "PLACEHOLDER" }),
           makeBlock("button", { text: "See my work", href: "#" })
         ];
       }
@@ -209,7 +209,7 @@
       if (template === "studio") {
         return [
           makeBlock("heading", { text: "Welcome to my studio" }),
-          makeBlock("text", { text: "Tell visitors what your business does." }),
+          makeBlock("text", { text: "PLACEHOLDER" }),
           makeBlock("button", { text: "Get in touch", href: "mailto:hello@example.com" })
         ];
       }
